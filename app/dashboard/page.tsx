@@ -5,6 +5,7 @@ import { Layout } from '@/components/layout/Layout';
 import { WeatherCard } from '@/components/dashboard/WeatherCard';
 import { CropCard } from '@/components/dashboard/CropCard';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ import { Crop, Advisory } from '@/types';
 
 export default function DashboardPage() {
   const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const activeCrops = dummyCrops.length;
   const averageHealth = Math.round(dummyCrops.reduce((sum, crop) => sum + crop.health, 0) / dummyCrops.length);
@@ -54,13 +56,37 @@ export default function DashboardPage() {
     }
   };
 
+  // Filter content based on search query
+  const filteredCrops = dummyCrops.filter(crop => 
+    crop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    crop.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    crop.variety.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredAdvisories = dummyAdvisories.filter(advisory =>
+    advisory.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    advisory.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <Layout>
       <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="space-y-1 sm:space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Farm Dashboard</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Monitor your crops, weather, and farm operations</p>
+        {/* Header with Search */}
+        <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Farm Dashboard</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Monitor your crops, weather, and farm operations</p>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="max-w-md">
+            <SearchBar 
+              placeholder="Search crops, advisories, or farm data..."
+              value={searchQuery}
+              onChange={setSearchQuery}
+              size="md"
+            />
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -108,13 +134,18 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {dummyCrops.map((crop) => (
+                  {filteredCrops.map((crop) => (
                     <CropCard
                       key={crop.id}
                       crop={crop}
                       onViewDetails={() => setSelectedCrop(crop)}
                     />
                   ))}
+                  {filteredCrops.length === 0 && searchQuery && (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                      No crops found matching &ldquo;{searchQuery}&rdquo;
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -129,7 +160,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 sm:space-y-4">
-                  {dummyAdvisories.map((advisory) => (
+                  {filteredAdvisories.map((advisory) => (
                     <div key={advisory.id} className="border rounded-lg p-3 sm:p-4">
                       <div className="flex items-start justify-between mb-2">
                         <h4 className="font-medium text-sm sm:text-base text-gray-900">{advisory.title}</h4>
@@ -149,6 +180,11 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))}
+                  {filteredAdvisories.length === 0 && searchQuery && (
+                    <div className="text-center py-8 text-gray-500">
+                      No advisories found matching &ldquo;{searchQuery}&rdquo;
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

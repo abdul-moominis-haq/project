@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartAgri Weather API Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .weather-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .weather-header {
+            color: #2563eb;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .weather-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .data-item {
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .data-label {
+            font-weight: bold;
+            color: #374151;
+        }
+        .data-value {
+            font-size: 1.2em;
+            color: #1f2937;
+        }
+        .api-example {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <h1>🌤️ SmartAgri Weather API Integration</h1>
+    
+    <div class="status info">
+        <strong>Integration Status:</strong> Open-Meteo Weather API successfully integrated into SmartAgri platform
+    </div>
+
+    <div class="weather-card">
+        <h2 class="weather-header">📡 API Implementation Overview</h2>
+        <p>Your SmartAgri application now uses the <strong>Open-Meteo Weather API</strong> to provide real-time weather data, forecasts, and agricultural analysis.</p>
+        
+        <h3>🔧 Implementation Features:</h3>
+        <ul>
+            <li><strong>Current Weather</strong> - Real-time temperature, humidity, precipitation, wind data</li>
+            <li><strong>Weather Forecast</strong> - 7-day detailed forecast with agricultural insights</li>
+            <li><strong>Historical Data</strong> - Past weather patterns for trend analysis</li>
+            <li><strong>Agricultural Analysis</strong> - AI-powered farming recommendations</li>
+            <li><strong>Geolocation Support</strong> - Automatic location detection</li>
+        </ul>
+    </div>
+
+    <div class="weather-card">
+        <h2 class="weather-header">🌐 API Example Call</h2>
+        <p>Here's how your application fetches current weather data:</p>
+        
+        <div class="api-example">
+curl "https://api.open-meteo.com/v1/forecast?latitude=-1.286389&longitude=36.817223&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&timezone=auto"
+        </div>
+        
+        <h3>📊 Sample Response Structure:</h3>
+        <div class="api-example">
+{
+  "latitude": -1.25,
+  "longitude": 36.75,
+  "current": {
+    "time": "2025-08-17T12:00",
+    "temperature_2m": 24.5,
+    "relative_humidity_2m": 65,
+    "precipitation": 0.0,
+    "weather_code": 1,
+    "wind_speed_10m": 8.5
+  }
+}
+        </div>
+    </div>
+
+    <div class="weather-card">
+        <h2 class="weather-header">🚀 How to Test the Integration</h2>
+        <ol>
+            <li><strong>Visit your weather page:</strong> <a href="http://localhost:3001/weather" target="_blank">http://localhost:3001/weather</a></li>
+            <li><strong>Allow location access</strong> when prompted for real location-based data</li>
+            <li><strong>Check the browser console</strong> for API calls and responses</li>
+            <li><strong>Compare data</strong> with other weather services to verify accuracy</li>
+        </ol>
+    </div>
+
+    <div class="weather-card">
+        <h2 class="weather-header">📈 Agricultural Intelligence Features</h2>
+        <div class="weather-data">
+            <div class="data-item">
+                <div class="data-label">Irrigation Recommendations</div>
+                <div class="data-value">Based on humidity & precipitation forecasts</div>
+            </div>
+            <div class="data-item">
+                <div class="data-label">Planting Advice</div>
+                <div class="data-value">Optimal timing based on weather patterns</div>
+            </div>
+            <div class="data-item">
+                <div class="data-label">Pest & Disease Alerts</div>
+                <div class="data-value">Weather-based risk assessments</div>
+            </div>
+            <div class="data-item">
+                <div class="data-label">Crop-Specific Insights</div>
+                <div class="data-value">Tailored advice for different crops</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="weather-card">
+        <h2 class="weather-header">🔄 Data Sources & Accuracy</h2>
+        <p><strong>Open-Meteo API</strong> provides data from:</p>
+        <ul>
+            <li>🛰️ Satellite observations</li>
+            <li>🌡️ Ground weather stations</li>
+            <li>📊 ERA5 reanalysis data (for historical weather)</li>
+            <li>🔮 High-resolution weather models</li>
+        </ul>
+        
+        <div class="status success">
+            <strong>✅ Integration Complete:</strong> Your SmartAgri platform now provides accurate, real-time weather data for improved agricultural decision-making!
+        </div>
+    </div>
+
+    <div class="weather-card">
+        <h2 class="weather-header">🛠️ Technical Implementation</h2>
+        <p><strong>Files Modified/Created:</strong></p>
+        <ul>
+            <li><code>services/weather-api.ts</code> - Weather API service layer</li>
+            <li><code>app/weather/page.tsx</code> - Updated to use real API data</li>
+            <li>Enhanced error handling and fallback to dummy data</li>
+            <li>Type-safe TypeScript implementation</li>
+        </ul>
+        
+        <p><strong>Key Features:</strong></p>
+        <ul>
+            <li>🔄 Automatic retry on API failures</li>
+            <li>💾 Fallback to dummy data when offline</li>
+            <li>📍 Geolocation-based weather fetching</li>
+            <li>🌾 Agricultural-specific data processing</li>
+            <li>⚡ Optimized for performance</li>
+        </ul>
+    </div>
+
+    <script>
+        // Simple JavaScript to show the integration is working
+        console.log('🌤️ SmartAgri Weather API Integration Active');
+        console.log('Visit /weather page to see real weather data!');
+        
+        // You can test the API directly here
+        async function testAPI() {
+            try {
+                const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-1.286389&longitude=36.817223&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&timezone=auto');
+                const data = await response.json();
+                console.log('✅ API Test Successful:', data);
+            } catch (error) {
+                console.log('❌ API Test Failed:', error);
+            }
+        }
+        
+        // Test the API when page loads
+        testAPI();
+    </script>
+</body>
+</html>

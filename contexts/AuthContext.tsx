@@ -23,6 +23,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedUser = localStorage.getItem('smartagri_user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+    } else {
+      // Auto-login with default user for demo purposes
+      const defaultUser = dummyUsers[0];
+      setUser(defaultUser);
+      localStorage.setItem('smartagri_user', JSON.stringify(defaultUser));
     }
     setIsLoading(false);
   }, []);

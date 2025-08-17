@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// Import API services
+import WeatherAPIService from '@/services/weather-api';
 import { 
   Cloud, 
   MapPin, 
@@ -18,19 +20,367 @@ import {
   BarChart3,
   TrendingUp,
   Cpu,
-  Battery,
-  Wifi,
-  WifiOff,
   Settings,
   Sprout,
   Calendar,
-  Activity
+  Activity,
+  Brain,
+  Zap,
+  Target,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
-import { historicalWeatherData, currentWeather, dummyIoTSensors, dummyCrops } from '@/lib/dummy-data';
+import { historicalWeatherData, currentWeather, dummyCrops } from '@/lib/dummy-data';
 
 export default function WeatherPage() {
   const [selectedLocation, setSelectedLocation] = useState('nairobi');
-  const [selectedSensor, setSelectedSensor] = useState('');
+  const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number, name: string} | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [aiPredictionTimeframe, setAiPredictionTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  // Additional state for API data
+  const [weatherData, setWeatherData] = useState(currentWeather);
+  const [historicalData, setHistoricalData] = useState(historicalWeatherData);
+  const [forecastData, setForecastData] = useState<any[]>([]);
+  const [loadingWeather, setLoadingWeather] = useState(false);
+
+  // Load weather data on component mount and location change
+  useEffect(() => {
+    loadWeatherData();
+    loadHistoricalData();
+    loadForecastData();
+  }, [userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // API Functions using Open-Meteo Weather API
+  const loadWeatherData = async () => {
+    setLoadingWeather(true);
+    try {
+      if (userLocation) {
+        const weather = await WeatherAPIService.getCurrentWeather(
+          userLocation.latitude, 
+          userLocation.longitude
+        );
+        setWeatherData({
+          temperature: Math.round(weather.current.temperature),
+          condition: weather.current.weather_description,
+          humidity: weather.current.humidity,
+          rainfall: weather.current.precipitation || 0,
+          icon: weather.current.weather_icon
+        });
+      } else {
+        // Default to Nairobi if no location set
+        const defaultLat = -1.286389;
+        const defaultLng = 36.817223;
+        const weather = await WeatherAPIService.getCurrentWeather(defaultLat, defaultLng);
+        setWeatherData({
+          temperature: Math.round(weather.current.temperature),
+          condition: weather.current.weather_description,
+          humidity: weather.current.humidity,
+          rainfall: weather.current.precipitation || 0,
+          icon: weather.current.weather_icon
+        });
+      }
+    } catch (error) {
+      console.error('Error loading weather data:', error);
+      // Fallback to dummy data
+      setWeatherData(currentWeather);
+    } finally {
+      setLoadingWeather(false);
+    }
+  };
+
+  const loadHistoricalData = async () => {
+    try {
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      if (userLocation) {
+        const historical = await WeatherAPIService.getHistoricalWeather(
+          userLocation.latitude, 
+          userLocation.longitude, 
+          startDate, 
+          endDate
+        );
+        setHistoricalData(historical.daily.map((day: any) => ({
+          date: day.date,
+          temperature: Math.round(day.temperature_avg),
+          humidity: Math.round(day.humidity_avg),
+          rainfall: day.precipitation_sum
+        })));
+      } else {
+        // Default to Nairobi
+        const defaultLat = -1.286389;
+        const defaultLng = 36.817223;
+        const historical = await WeatherAPIService.getHistoricalWeather(
+          defaultLat, 
+          defaultLng, 
+          startDate, 
+          endDate
+        );
+        setHistoricalData(historical.daily.map((day: any) => ({
+          date: day.date,
+          temperature: Math.round(day.temperature_avg),
+          humidity: Math.round(day.humidity_avg),
+          rainfall: day.precipitation_sum
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading historical data:', error);
+      // Fallback to dummy data
+      setHistoricalData(historicalWeatherData);
+    }
+  };
+
+  const loadForecastData = async () => {
+    try {
+      if (userLocation) {
+        const forecast = await WeatherAPIService.getWeatherForecast(
+          userLocation.latitude, 
+          userLocation.longitude, 
+          7
+        );
+        setForecastData(forecast.forecast.map((day: any) => ({
+          date: day.date,
+          temperature: Math.round((day.temperature_max + day.temperature_min) / 2),
+          temperature_max: Math.round(day.temperature_max),
+          temperature_min: Math.round(day.temperature_min),
+          humidity: 70, // Default since not provided in daily forecast
+          rainfall: day.precipitation_sum,
+          condition: day.weather_description,
+          icon: day.weather_icon,
+          precipitation_probability: day.precipitation_probability,
+          wind_speed: Math.round(day.wind_speed_max),
+          uv_index: day.uv_index_max
+        })));
+      } else {
+        // Default to Nairobi
+        const defaultLat = -1.286389;
+        const defaultLng = 36.817223;
+        const forecast = await WeatherAPIService.getWeatherForecast(
+          defaultLat, 
+          defaultLng, 
+          7
+        );
+        setForecastData(forecast.forecast.map((day: any) => ({
+          date: day.date,
+          temperature: Math.round((day.temperature_max + day.temperature_min) / 2),
+          temperature_max: Math.round(day.temperature_max),
+          temperature_min: Math.round(day.temperature_min),
+          humidity: 70,
+          rainfall: day.precipitation_sum,
+          condition: day.weather_description,
+          icon: day.weather_icon,
+          precipitation_probability: day.precipitation_probability,
+          wind_speed: Math.round(day.wind_speed_max),
+          uv_index: day.uv_index_max
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading forecast data:', error);
+      // Fallback to dummy data
+      setForecastData([
+        { date: '2025-01-08', temperature: 26, humidity: 72, rainfall: 1.2, condition: 'Sunny', icon: '☀️' },
+        { date: '2025-01-09', temperature: 24, humidity: 75, rainfall: 3.5, condition: 'Rainy', icon: '🌧️' },
+        { date: '2025-01-10', temperature: 28, humidity: 65, rainfall: 0, condition: 'Clear', icon: '☀️' }
+      ]);
+    }
+  };
+
+  // Get agricultural weather analysis
+  const getAgriculturalAnalysis = async (cropType?: string) => {
+    try {
+      if (userLocation) {
+        const analysis = await WeatherAPIService.getAgriculturalWeatherAnalysis(
+          userLocation.latitude, 
+          userLocation.longitude, 
+          cropType
+        );
+        return analysis.insights;
+      } else {
+        // Default to Nairobi
+        const defaultLat = -1.286389;
+        const defaultLng = 36.817223;
+        const analysis = await WeatherAPIService.getAgriculturalWeatherAnalysis(
+          defaultLat, 
+          defaultLng, 
+          cropType
+        );
+        return analysis.insights;
+      }
+    } catch (error) {
+      console.error('Error getting agricultural analysis:', error);
+      return {
+        irrigation: ['Unable to fetch irrigation recommendations'],
+        planting: ['Unable to fetch planting recommendations'],
+        harvesting: ['Unable to fetch harvesting recommendations'],
+        pest_disease: ['Unable to fetch pest/disease alerts'],
+        general: ['Weather analysis temporarily unavailable']
+      };
+    }
+  };
+
+  // Geolocation functionality
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.permissions.query({name: 'geolocation'}).then((result) => {
+        setLocationPermission(result.state as 'granted' | 'denied' | 'prompt');
+      });
+    }
+  }, []);
+
+  const requestLocation = async () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    setIsLoadingLocation(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Simulate reverse geocoding (in real app, use Google Maps API or similar)
+        try {
+          const locationName = await reverseGeocode(latitude, longitude);
+          setUserLocation({ latitude, longitude, name: locationName });
+          setLocationPermission('granted');
+        } catch (error) {
+          console.error('Error getting location name:', error);
+          setUserLocation({ 
+            latitude, 
+            longitude, 
+            name: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` 
+          });
+        }
+        setIsLoadingLocation(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        setLocationPermission('denied');
+        setIsLoadingLocation(false);
+        alert('Unable to retrieve your location. Please check your browser settings.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  // Reverse geocoding using Open-Meteo API
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const locationName = await WeatherAPIService.getLocationName(lat, lng);
+      return locationName;
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+      // Fallback to coordinates
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  };
+
+  // AI Weather Predictions Data
+  const aiPredictions = {
+    daily: [
+      {
+        date: 'Tomorrow',
+        temperature: { min: 18, max: 28, confidence: 94 },
+        rainfall: { probability: 15, amount: 0.2, confidence: 89 },
+        humidity: { value: 72, confidence: 91 },
+        recommendation: 'Ideal conditions for outdoor farming activities',
+        risk: 'low'
+      },
+      {
+        date: 'Day 2',
+        temperature: { min: 20, max: 26, confidence: 91 },
+        rainfall: { probability: 45, amount: 3.5, confidence: 86 },
+        humidity: { value: 78, confidence: 88 },
+        recommendation: 'Light rain expected - check irrigation schedules',
+        risk: 'medium'
+      },
+      {
+        date: 'Day 3',
+        temperature: { min: 19, max: 25, confidence: 87 },
+        rainfall: { probability: 70, amount: 8.2, confidence: 82 },
+        humidity: { value: 85, confidence: 85 },
+        recommendation: 'Heavy rain likely - ensure proper drainage',
+        risk: 'high'
+      }
+    ],
+    weekly: [
+      {
+        period: 'Week 1',
+        avgTemp: { min: 19, max: 27, confidence: 89 },
+        totalRainfall: { amount: 25.5, confidence: 84 },
+        avgHumidity: { value: 75, confidence: 87 },
+        recommendation: 'Moderate rainfall expected - optimal for most crops',
+        patterns: ['Sunny mornings', 'Afternoon showers', 'Cool evenings']
+      },
+      {
+        period: 'Week 2',
+        avgTemp: { min: 21, max: 29, confidence: 85 },
+        totalRainfall: { amount: 12.3, confidence: 79 },
+        avgHumidity: { value: 68, confidence: 82 },
+        recommendation: 'Drier conditions - increase irrigation frequency',
+        patterns: ['Clear skies', 'Low humidity', 'Warmer temperatures']
+      },
+      {
+        period: 'Week 3',
+        avgTemp: { min: 18, max: 26, confidence: 78 },
+        totalRainfall: { amount: 35.8, confidence: 75 },
+        avgHumidity: { value: 82, confidence: 80 },
+        recommendation: 'Heavy rainfall period - monitor for flooding',
+        patterns: ['Overcast conditions', 'Frequent rain', 'High humidity']
+      }
+    ],
+    monthly: [
+      {
+        month: 'This Month',
+        avgTemp: { min: 19, max: 27, confidence: 82 },
+        totalRainfall: { amount: 125.5, confidence: 78 },
+        avgHumidity: { value: 74, confidence: 81 },
+        recommendation: 'Favorable growing conditions overall',
+        trends: ['Temperature stability', 'Regular rainfall', 'Moderate humidity'],
+        cropSuitability: ['Maize: Excellent', 'Tomatoes: Good', 'Beans: Excellent']
+      },
+      {
+        month: 'Next Month',
+        avgTemp: { min: 21, max: 30, confidence: 75 },
+        totalRainfall: { amount: 85.2, confidence: 72 },
+        avgHumidity: { value: 69, confidence: 76 },
+        recommendation: 'Warmer and drier - adjust irrigation plans',
+        trends: ['Rising temperatures', 'Decreasing rainfall', 'Lower humidity'],
+        cropSuitability: ['Maize: Good', 'Tomatoes: Excellent', 'Beans: Moderate']
+      },
+      {
+        month: 'Month 3',
+        avgTemp: { min: 17, max: 25, confidence: 68 },
+        totalRainfall: { amount: 180.3, confidence: 65 },
+        avgHumidity: { value: 81, confidence: 71 },
+        recommendation: 'Wet season approaching - prepare drainage systems',
+        trends: ['Cooling temperatures', 'Increasing rainfall', 'Higher humidity'],
+        cropSuitability: ['Maize: Moderate', 'Tomatoes: Poor', 'Beans: Good']
+      }
+    ]
+  };
+
+  const getCurrentPredictions = () => {
+    return aiPredictions[aiPredictionTimeframe];
+  };
+
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'low': return 'text-green-600 bg-green-100';
+      case 'medium': return 'text-yellow-600 bg-yellow-100';
+      case 'high': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 90) return 'text-green-600';
+    if (confidence >= 80) return 'text-blue-600';
+    if (confidence >= 70) return 'text-yellow-600';
+    return 'text-red-600';
+  };
 
   const locations = [
     { value: 'nairobi', label: 'Nairobi, Kenya', coords: '-1.2921°, 36.8219°' },
@@ -41,7 +391,7 @@ export default function WeatherPage() {
 
   const currentLocationData = locations.find(loc => loc.value === selectedLocation);
 
-  const temperatureData = historicalWeatherData.map(data => ({
+  const temperatureData = historicalData.map(data => ({
     date: new Date(data.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     temperature: data.temperature
   }));
@@ -68,17 +418,17 @@ export default function WeatherPage() {
         <Tabs defaultValue="crops" className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto">
             <TabsList className="grid w-full grid-cols-5 min-w-max">
-              <TabsTrigger value="crops" className="text-xs sm:text-sm px-2 sm:px-4">Crop & IoT</TabsTrigger>
+              <TabsTrigger value="crops" className="text-xs sm:text-sm px-2 sm:px-4">Crops</TabsTrigger>
               <TabsTrigger value="current" className="text-xs sm:text-sm px-2 sm:px-4">Current</TabsTrigger>
               <TabsTrigger value="forecast" className="text-xs sm:text-sm px-2 sm:px-4">Weather & GPS</TabsTrigger>
+              <TabsTrigger value="ai-predictions" className="text-xs sm:text-sm px-2 sm:px-4">AI Predictions</TabsTrigger>
               <TabsTrigger value="analytics" className="text-xs sm:text-sm px-2 sm:px-4">Analytics</TabsTrigger>
-              <TabsTrigger value="iot" className="text-xs sm:text-sm px-2 sm:px-4">IoT Network</TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Crop & IoT Management Tab */}
+          {/* Crop Management Tab */}
           <TabsContent value="crops" className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
               {/* Crop Management */}
               <Card>
                 <CardHeader className="pb-3 sm:pb-4">
@@ -133,66 +483,6 @@ export default function WeatherPage() {
                             style={{ width: `${crop.progress}%` }}
                           ></div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* IoT Management */}
-              <Card>
-                <CardHeader className="pb-3 sm:pb-4">
-                  <CardTitle className="flex items-center space-x-2 text-lg">
-                    <Cpu className="w-5 h-5" />
-                    <span>IoT Sensors</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 sm:space-y-4">
-                  {dummyIoTSensors.map((sensor) => (
-                    <div key={sensor.id} className="bg-gray-50 rounded-lg p-3 sm:p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2 min-w-0 flex-1">
-                          {sensor.status === 'active' ? (
-                            <Wifi className="w-4 h-4 text-green-500 shrink-0" />
-                          ) : (
-                            <WifiOff className="w-4 h-4 text-red-500 shrink-0" />
-                          )}
-                          <span className="font-medium text-sm truncate">{sensor.name}</span>
-                        </div>
-                        <Badge variant={sensor.status === 'active' ? 'default' : 'destructive'} className="text-xs shrink-0">
-                          {sensor.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
-                        <div>
-                          <p className="text-gray-500">Type</p>
-                          <p className="font-medium">{sensor.type}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Location</p>
-                          <p className="font-medium truncate">{sensor.location}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Reading</p>
-                          <p className="font-medium">
-                            {sensor.lastReading.value} {sensor.lastReading.unit}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Battery className="w-3 h-3 text-gray-400" />
-                          <span className="text-gray-500">{sensor.batteryLevel}%</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 flex items-center justify-between">
-                        <p className="text-xs text-gray-500 truncate">
-                          {new Date(sensor.lastReading.timestamp).toLocaleString()}
-                        </p>
-                        <Button variant="outline" size="sm" className="text-xs shrink-0">
-                          <Settings className="w-3 h-3 mr-1" />
-                          Setup
-                        </Button>
                       </div>
                     </div>
                   ))}
@@ -253,19 +543,36 @@ export default function WeatherPage() {
                     <Cloud className="w-5 h-5" />
                     <span>Current Conditions</span>
                   </CardTitle>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4" />
-                    <span>Nairobi, Kenya</span>
-                    <Badge variant="outline">GPS: -1.2921°, 36.8219°</Badge>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4" />
+                      <span>{userLocation ? userLocation.name : 'Nairobi, Kenya'}</span>
+                      {userLocation && (
+                        <Badge variant="outline">GPS: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}</Badge>
+                      )}
+                      {!userLocation && (
+                        <Badge variant="outline">GPS: -1.2921°, 36.8219°</Badge>
+                      )}
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={requestLocation}
+                      disabled={isLoadingLocation}
+                      className="flex items-center space-x-1"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      <span>{isLoadingLocation ? 'Getting Location...' : 'Use My Location'}</span>
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center space-x-8">
                     <div className="flex items-center space-x-4">
-                      <span className="text-6xl">{currentWeather.icon}</span>
+                      <span className="text-6xl">{weatherData.icon}</span>
                       <div>
-                        <p className="text-4xl font-bold text-gray-900">{currentWeather.temperature}°C</p>
-                        <p className="text-gray-600 text-lg">{currentWeather.condition}</p>
+                        <p className="text-4xl font-bold text-gray-900">{weatherData.temperature}°C</p>
+                        <p className="text-gray-600 text-lg">{weatherData.condition}</p>
                       </div>
                     </div>
                     
@@ -275,7 +582,7 @@ export default function WeatherPage() {
                           <Droplets className="w-5 h-5 text-blue-500" />
                           <span className="text-sm text-gray-600">Humidity</span>
                         </div>
-                        <p className="text-2xl font-semibold">{currentWeather.humidity}%</p>
+                        <p className="text-2xl font-semibold">{weatherData.humidity}%</p>
                       </div>
                       
                       <div className="space-y-2">
@@ -283,7 +590,7 @@ export default function WeatherPage() {
                           <Droplets className="w-5 h-5 text-blue-600" />
                           <span className="text-sm text-gray-600">Rainfall</span>
                         </div>
-                        <p className="text-2xl font-semibold">{currentWeather.rainfall}mm</p>
+                        <p className="text-2xl font-semibold">{weatherData.rainfall}mm</p>
                       </div>
                       
                       <div className="space-y-2">
@@ -306,38 +613,7 @@ export default function WeatherPage() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">IoT Weather Sensors</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {dummyIoTSensors.filter(sensor => 
-                    sensor.type === 'Temperature' || sensor.type === 'Soil Moisture'
-                  ).map((sensor) => (
-                    <div key={sensor.id} className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-sm">{sensor.location}</span>
-                        <Badge variant={sensor.status === 'active' ? 'default' : 'destructive'}>
-                          {sensor.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {sensor.type === 'Temperature' ? (
-                          <Thermometer className="w-4 h-4 text-red-500" />
-                        ) : (
-                          <Droplets className="w-4 h-4 text-blue-500" />
-                        )}
-                        <span className="text-lg font-semibold">
-                          {sensor.lastReading.value} {sensor.lastReading.unit}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(sensor.lastReading.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+
             </div>
           </TabsContent>
 
@@ -434,25 +710,6 @@ export default function WeatherPage() {
                       <p className="text-sm text-gray-600">Time Zone: EAT (UTC+3)</p>
                       <p className="text-sm text-gray-600">Climate Zone: Tropical Highland</p>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <h5 className="text-sm font-medium">IoT Weather Sensors in Area</h5>
-                      {dummyIoTSensors.filter(sensor => 
-                        sensor.type === 'Temperature' || sensor.type === 'Soil Moisture'
-                      ).map((sensor, index) => (
-                        <div key={sensor.id} className="bg-white border rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{sensor.name}</span>
-                            <Badge variant={sensor.status === 'active' ? 'default' : 'destructive'}>
-                              {sensor.status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {sensor.location} - {sensor.lastReading.value}{sensor.lastReading.unit}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                   
                   <div className="space-y-4">
@@ -484,11 +741,245 @@ export default function WeatherPage() {
                     <div className="bg-blue-50 rounded-lg p-4">
                       <h5 className="font-medium text-blue-900 mb-2">Weather Data Sources</h5>
                       <div className="text-sm text-blue-800 space-y-1">
-                        <p>• Real-time IoT sensors: 12 active</p>
                         <p>• Meteorological stations: 3 active</p>
                         <p>• Satellite data: Updated hourly</p>
                         <p>• Crowd-sourced data: 47 contributors</p>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* AI Predictions Tab */}
+          <TabsContent value="ai-predictions" className="space-y-6">
+            {/* AI Predictions Header */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Brain className="w-5 h-5 text-purple-600" />
+                  <span>AI Weather Predictions</span>
+                </CardTitle>
+                <p className="text-sm text-gray-600 mt-1">
+                  Advanced machine learning models predict weather patterns using historical data, satellite imagery, 
+                  and IoT sensor networks to provide accurate farming insights.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">Prediction Timeframe:</span>
+                    <Select value={aiPredictionTimeframe} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setAiPredictionTimeframe(value)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily (3 Days)</SelectItem>
+                        <SelectItem value="weekly">Weekly (3 Weeks)</SelectItem>
+                        <SelectItem value="monthly">Monthly (3 Months)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Zap className="w-4 h-4 text-blue-500" />
+                    <span>AI Model: WeatherNet v3.2</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Target className="w-4 h-4 text-green-500" />
+                    <span>Accuracy: 89.5%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Predictions Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {getCurrentPredictions().map((prediction: any, index: number) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">
+                        {aiPredictionTimeframe === 'daily' ? prediction.date : 
+                         aiPredictionTimeframe === 'weekly' ? prediction.period : 
+                         prediction.month}
+                      </CardTitle>
+                      {aiPredictionTimeframe === 'daily' && prediction.risk && (
+                        <Badge className={getRiskColor(prediction.risk)}>
+                          {prediction.risk} risk
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Temperature Prediction */}
+                    <div className="bg-red-50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Thermometer className="w-4 h-4 text-red-500" />
+                          <span className="text-sm font-medium">Temperature</span>
+                        </div>
+                        <span className={`text-xs font-medium ${getConfidenceColor(
+                          aiPredictionTimeframe === 'daily' ? prediction.temperature.confidence :
+                          aiPredictionTimeframe === 'weekly' ? prediction.avgTemp.confidence :
+                          prediction.avgTemp.confidence
+                        )}`}>
+                          {aiPredictionTimeframe === 'daily' ? prediction.temperature.confidence :
+                           aiPredictionTimeframe === 'weekly' ? prediction.avgTemp.confidence :
+                           prediction.avgTemp.confidence}% confidence
+                        </span>
+                      </div>
+                      <p className="text-lg font-bold text-red-700">
+                        {aiPredictionTimeframe === 'daily' ? 
+                          `${prediction.temperature.min}°C - ${prediction.temperature.max}°C` :
+                         aiPredictionTimeframe === 'weekly' ?
+                          `${prediction.avgTemp.min}°C - ${prediction.avgTemp.max}°C avg` :
+                          `${prediction.avgTemp.min}°C - ${prediction.avgTemp.max}°C avg`
+                        }
+                      </p>
+                    </div>
+
+                    {/* Rainfall Prediction */}
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Droplets className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm font-medium">Rainfall</span>
+                        </div>
+                        <span className={`text-xs font-medium ${getConfidenceColor(
+                          aiPredictionTimeframe === 'daily' ? prediction.rainfall.confidence :
+                          aiPredictionTimeframe === 'weekly' ? prediction.totalRainfall.confidence :
+                          prediction.totalRainfall.confidence
+                        )}`}>
+                          {aiPredictionTimeframe === 'daily' ? prediction.rainfall.confidence :
+                           aiPredictionTimeframe === 'weekly' ? prediction.totalRainfall.confidence :
+                           prediction.totalRainfall.confidence}% confidence
+                        </span>
+                      </div>
+                      {aiPredictionTimeframe === 'daily' ? (
+                        <>
+                          <p className="text-lg font-bold text-blue-700">{prediction.rainfall.probability}% chance</p>
+                          <p className="text-sm text-blue-600">Expected: {prediction.rainfall.amount}mm</p>
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-blue-700">
+                          {aiPredictionTimeframe === 'weekly' ? prediction.totalRainfall.amount : prediction.totalRainfall.amount}mm total
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Humidity Prediction */}
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Wind className="w-4 h-4 text-green-500" />
+                          <span className="text-sm font-medium">Humidity</span>
+                        </div>
+                        <span className={`text-xs font-medium ${getConfidenceColor(
+                          aiPredictionTimeframe === 'daily' ? prediction.humidity.confidence :
+                          aiPredictionTimeframe === 'weekly' ? prediction.avgHumidity.confidence :
+                          prediction.avgHumidity.confidence
+                        )}`}>
+                          {aiPredictionTimeframe === 'daily' ? prediction.humidity.confidence :
+                           aiPredictionTimeframe === 'weekly' ? prediction.avgHumidity.confidence :
+                           prediction.avgHumidity.confidence}% confidence
+                        </span>
+                      </div>
+                      <p className="text-lg font-bold text-green-700">
+                        {aiPredictionTimeframe === 'daily' ? prediction.humidity.value :
+                         aiPredictionTimeframe === 'weekly' ? prediction.avgHumidity.value :
+                         prediction.avgHumidity.value}% avg
+                      </p>
+                    </div>
+
+                    {/* AI Recommendation */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Brain className="w-4 h-4 text-purple-600" />
+                        <span className="text-sm font-medium text-purple-900">AI Recommendation</span>
+                      </div>
+                      <p className="text-sm text-purple-800">{prediction.recommendation}</p>
+                    </div>
+
+                    {/* Additional Info for Weekly/Monthly */}
+                    {aiPredictionTimeframe === 'weekly' && prediction.patterns && (
+                      <div className="space-y-2">
+                        <h5 className="text-sm font-medium text-gray-700">Expected Patterns:</h5>
+                        <div className="grid grid-cols-1 gap-1">
+                          {prediction.patterns.map((pattern: string, idx: number) => (
+                            <div key={idx} className="flex items-center space-x-2 text-xs text-gray-600">
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                              <span>{pattern}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {aiPredictionTimeframe === 'monthly' && prediction.trends && (
+                      <div className="space-y-2">
+                        <h5 className="text-sm font-medium text-gray-700">Climate Trends:</h5>
+                        <div className="grid grid-cols-1 gap-1">
+                          {prediction.trends.map((trend: string, idx: number) => (
+                            <div key={idx} className="flex items-center space-x-2 text-xs text-gray-600">
+                              <TrendingUp className="w-3 h-3 text-blue-500" />
+                              <span>{trend}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 pt-2 border-t border-gray-200">
+                          <h6 className="text-xs font-medium text-gray-700 mb-1">Crop Suitability:</h6>
+                          {prediction.cropSuitability.map((crop: string, idx: number) => (
+                            <div key={idx} className="text-xs text-gray-600">{crop}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Model Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Cpu className="w-5 h-5 text-blue-600" />
+                  <span>AI Model Performance</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">89.5%</div>
+                    <div className="text-sm text-gray-600">Overall Accuracy</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">94.2%</div>
+                    <div className="text-sm text-gray-600">Rainfall Prediction</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">91.8%</div>
+                    <div className="text-sm text-gray-600">Temperature Forecast</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">87.3%</div>
+                    <div className="text-sm text-gray-600">Humidity Prediction</div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-medium mb-2">Data Sources & Training:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                      <p>• 5+ years of historical weather data</p>
+                      <p>• Real-time IoT sensor networks</p>
+                      <p>• Satellite imagery and radar data</p>
+                    </div>
+                    <div>
+                      <p>• Global climate models integration</p>
+                      <p>• Local microclimate considerations</p>
+                      <p>• Continuous learning from farmer feedback</p>
                     </div>
                   </div>
                 </div>
@@ -746,121 +1237,6 @@ export default function WeatherPage() {
                         </p>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* IoT Sensor Network Tab */}
-          <TabsContent value="iot" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Cpu className="w-5 h-5" />
-                  <span>IoT Sensor Network Overview</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <h4 className="font-medium text-green-900">Active Sensors</h4>
-                    <p className="text-2xl font-bold text-green-900">
-                      {dummyIoTSensors.filter(s => s.status === 'active').length}
-                    </p>
-                  </div>
-                  <div className="bg-yellow-50 rounded-lg p-4">
-                    <h4 className="font-medium text-yellow-900">Maintenance</h4>
-                    <p className="text-2xl font-bold text-yellow-900">
-                      {dummyIoTSensors.filter(s => s.status === 'maintenance').length}
-                    </p>
-                  </div>
-                  <div className="bg-red-50 rounded-lg p-4">
-                    <h4 className="font-medium text-red-900">Offline</h4>
-                    <p className="text-2xl font-bold text-red-900">
-                      {dummyIoTSensors.filter(s => s.status === 'inactive').length}
-                    </p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900">Data Points</h4>
-                    <p className="text-2xl font-bold text-blue-900">1,247</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Sensor Details</h4>
-                    <Select value={selectedSensor} onValueChange={setSelectedSensor}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Filter by sensor type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All Sensors</SelectItem>
-                        <SelectItem value="Temperature">Temperature</SelectItem>
-                        <SelectItem value="Soil Moisture">Soil Moisture</SelectItem>
-                        <SelectItem value="Soil pH">Soil pH</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {dummyIoTSensors
-                      .filter(sensor => !selectedSensor || sensor.type === selectedSensor)
-                      .map((sensor) => (
-                      <div key={sensor.id} className="bg-gray-50 rounded-lg p-4 border">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            {sensor.status === 'active' ? (
-                              <Wifi className="w-4 h-4 text-green-500" />
-                            ) : sensor.status === 'maintenance' ? (
-                              <Settings className="w-4 h-4 text-yellow-500" />
-                            ) : (
-                              <WifiOff className="w-4 h-4 text-red-500" />
-                            )}
-                            <span className="font-medium">{sensor.name}</span>
-                          </div>
-                          <Badge 
-                            variant={
-                              sensor.status === 'active' ? 'default' : 
-                              sensor.status === 'maintenance' ? 'secondary' : 'destructive'
-                            }
-                          >
-                            {sensor.status}
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4 mb-3">
-                          <div>
-                            <p className="text-xs text-gray-500">Type</p>
-                            <p className="font-medium">{sensor.type}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Location</p>
-                            <p className="font-medium">{sensor.location}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Current Reading</p>
-                            <p className="font-medium text-lg">
-                              {sensor.lastReading.value} {sensor.lastReading.unit}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Battery</p>
-                            <div className="flex items-center space-x-2">
-                              <Battery className="w-4 h-4 text-gray-400" />
-                              <span className="font-medium">{sensor.batteryLevel}%</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Last updated: {new Date(sensor.lastReading.timestamp).toLocaleString()}</span>
-                          <Button variant="outline" size="sm">
-                            View History
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </CardContent>

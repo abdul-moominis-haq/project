@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+// import { useAuth } from '@/hooks/useAuth'; // Commented out for now
+// import { authAPI } from '@/services/api'; // Commented out for now
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,18 +16,31 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  // const { login, isLoading } = useAuth(); // Commented out for now
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    const success = await login(email, password);
-    if (success) {
-      router.push('/dashboard');
-    } else {
-      setError('Invalid credentials. Try: john@example.com / password123');
+    try {
+      // API call (commented out for now)
+      // await authAPI.login(email, password);
+      // router.push('/dashboard');
+      
+      // Using dummy authentication for now
+      if (email === 'john@example.com' && password === 'password123') {
+        localStorage.setItem('authToken', 'dummy-jwt-token');
+        router.push('/dashboard');
+      } else {
+        setError('Invalid credentials. Try: john@example.com / password123');
+      }
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -114,7 +128,7 @@ export default function LoginPage() {
               </Button>
               
               <p className="text-center text-sm text-gray-600">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link href="/signup" className="text-green-600 hover:text-green-700 font-medium">
                   Sign up
                 </Link>
