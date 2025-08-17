@@ -72,19 +72,19 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <Link href="/profile" className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                {/* <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                   <span className="text-green-800 font-medium text-sm">
                     {user?.name?.charAt(0) || 'JF'}
                   </span>
-                </div>
-                <div className="hidden lg:block">
+                </div> */}
+                {/* <div className="hidden lg:block">
                   <p className="text-sm font-medium text-gray-900">
                     {user?.name || 'John Farmer'}
                   </p>
                   <p className="text-xs text-gray-500">
                     {user?.location || 'Nairobi, Kenya'}
                   </p>
-                </div>
+                </div> */}
               </Link>
             </div>
             

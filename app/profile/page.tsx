@@ -39,123 +39,90 @@ import {
   Activity
 } from 'lucide-react';
 
-// Dummy user data
-const dummyUser = {
-  id: '1',
-  firstName: 'John',
-  lastName: 'Kamau',
-  email: 'john.kamau@email.com',
-  phone: '+254 712 345 678',
-  avatar: '/api/placeholder/120/120',
-  location: 'Nakuru, Kenya',
-  farmName: 'Kamau Family Farm',
-  farmSize: '15.5',
-  experience: '8',
-  specialization: 'Mixed Farming',
-  bio: 'Passionate farmer dedicated to sustainable agriculture and innovative farming techniques. I focus on maize, beans, and dairy farming with modern IoT integration.',
-  joinDate: '2020-03-15',
-  achievements: [
-    { title: 'Best Harvest 2024', description: 'Achieved highest yield in the region', date: '2024-07-15' },
-    { title: 'Sustainable Farmer', description: 'Implemented eco-friendly practices', date: '2024-05-20' },
-    { title: 'Tech Innovator', description: 'Early adopter of IoT sensors', date: '2023-11-10' }
-  ],
-  stats: {
-    totalCrops: 12,
-    activeSensors: 8,
-    harvestsCompleted: 24,
-    farmEfficiency: 92
-  },
-  preferences: {
-    notifications: {
-      email: true,
-      sms: true,
-      push: true,
-      weather: true,
-      harvest: true,
-      maintenance: false
-    },
-    privacy: {
-      profileVisibility: 'public',
-      dataSharing: true,
-      analytics: true
-    },
-    language: 'en',
-    timezone: 'Africa/Nairobi',
-    units: 'metric'
-  }
-};
+// Remove dummy data - using real Supabase data now
 
 export default function ProfilePage() {
-  const { user: authUser } = useAuth();
+  const { user: authUser, supabaseUser } = useAuth();
   
-  // Create extended user profile based on auth user
-  const createExtendedProfile = (authUser: any) => {
-    if (!authUser) return dummyUser;
-    
-    const [firstName, ...lastNameParts] = authUser.name.split(' ');
-    const lastName = lastNameParts.join(' ') || 'Farmer';
-    
-    return {
-      id: authUser.id,
-      firstName: firstName,
-      lastName: lastName,
-      email: authUser.email,
-      phone: '+254 712 345 678',
-      avatar: '/api/placeholder/120/120',
-      location: authUser.location,
-      farmName: `${firstName}'s Farm`,
-      farmSize: '15.5',
-      experience: '8',
-      specialization: 'Mixed Farming',
-      bio: `Passionate farmer from ${authUser.location} dedicated to sustainable agriculture and innovative farming techniques. I focus on maize, beans, and dairy farming with modern IoT integration.`,
-      joinDate: '2020-03-15',
-      achievements: [
-        { title: 'Best Harvest 2024', description: 'Achieved highest yield in the region', date: '2024-07-15' },
-        { title: 'Sustainable Farmer', description: 'Implemented eco-friendly practices', date: '2024-05-20' },
-        { title: 'Tech Innovator', description: 'Early adopter of IoT sensors', date: '2023-11-10' }
-      ],
-      stats: {
-        totalCrops: 12,
-        activeSensors: 8,
-        harvestsCompleted: 24,
-        farmEfficiency: 92
-      },
-      preferences: {
-        notifications: {
-          email: true,
-          sms: true,
-          push: true,
-          weather: true,
-          harvest: true,
-          maintenance: false
-        },
-        privacy: {
-          profileVisibility: 'public',
-          dataSharing: true,
-          analytics: true
-        },
-        language: 'en',
-        timezone: 'Africa/Nairobi',
-        units: 'metric'
-      }
-    };
-  };
-
-  const [user, setUser] = useState(createExtendedProfile(authUser));
+  // State for profile data
+  const [user, setUser] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState(user);
+  const [editedUser, setEditedUser] = useState<any>(null);
   const [alertMessage, setAlertMessage] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  // Update user profile when auth user changes
+  // Load profile data from Supabase
   useEffect(() => {
-    if (authUser) {
-      const extendedProfile = createExtendedProfile(authUser);
-      setUser(extendedProfile);
-      setEditedUser(extendedProfile);
-    }
-  }, [authUser]);
+    const loadProfile = async () => {
+      if (!supabaseUser) {
+        setInitialLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/profile');
+        
+        if (response.status === 404) {
+          // Profile doesn't exist, create it
+          const createResponse = await fetch('/api/profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: authUser?.name || supabaseUser.email?.split('@')[0] || 'User',
+              location: authUser?.location || '',
+              phone: '',
+              farm_name: `${authUser?.name || 'User'}'s Farm`,
+              farm_size: null,
+              experience_years: null,
+              specialization: '',
+              bio: '',
+              avatar_url: null,
+              preferences: {
+                notifications: {
+                  email: true,
+                  sms: true,
+                  push: true,
+                  weather: true,
+                  harvest: true,
+                  maintenance: false
+                },
+                privacy: {
+                  profileVisibility: 'public',
+                  dataSharing: true,
+                  analytics: true
+                },
+                language: 'en',
+                timezone: 'Africa/Nairobi',
+                units: 'metric'
+              }
+            }),
+          });
+
+          if (createResponse.ok) {
+            const data = await createResponse.json();
+            setUser(data.profile);
+            setEditedUser(data.profile);
+          }
+        } else if (response.ok) {
+          const data = await response.json();
+          setUser(data.profile);
+          setEditedUser(data.profile);
+        } else {
+          console.error('Failed to load profile');
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [supabaseUser, authUser]);
 
   const handleEditProfile = () => {
     setIsEditing(true);
@@ -166,16 +133,36 @@ export default function ProfilePage() {
     setLoading(true);
     
     try {
-      // API call would go here
-      // await userAPI.updateProfile(editedUser);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setUser(editedUser);
-      setIsEditing(false);
-      setAlertMessage({type: 'success', message: 'Profile updated successfully!'});
-      setTimeout(() => setAlertMessage(null), 5000);
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: editedUser.name,
+          location: editedUser.location,
+          phone: editedUser.phone,
+          farm_name: editedUser.farm_name,
+          farm_size: editedUser.farm_size,
+          experience_years: editedUser.experience_years,
+          specialization: editedUser.specialization,
+          bio: editedUser.bio,
+          avatar_url: editedUser.avatar_url,
+          preferences: editedUser.preferences
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.profile);
+        setEditedUser(data.profile);
+        setIsEditing(false);
+        setAlertMessage({type: 'success', message: 'Profile updated successfully!'});
+        setTimeout(() => setAlertMessage(null), 5000);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       setAlertMessage({type: 'error', message: 'Failed to update profile. Please try again.'});
@@ -224,8 +211,13 @@ export default function ProfilePage() {
     }
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    const nameParts = name.split(' ');
+    if (nameParts.length >= 2) {
+      return `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`.toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
   };
 
   const formatDate = (dateString: string) => {
@@ -243,7 +235,35 @@ export default function ProfilePage() {
     return { level: 'Expert', color: 'bg-orange-100 text-orange-800' };
   };
 
-  const experienceLevel = getExperienceLevel(parseInt(user.experience));
+  const experienceLevel = user?.experience_years ? getExperienceLevel(user.experience_years) : { level: 'Not specified', color: 'bg-gray-100 text-gray-800' };
+
+  // Show loading state
+  if (initialLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p>Loading profile...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show error state if no user data
+  if (!user) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Failed to load profile data</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -289,9 +309,9 @@ export default function ProfilePage() {
                 <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
                   <div className="relative">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
+                      <AvatarImage src={user.avatar_url} alt={user.name} />
                       <AvatarFallback className="text-2xl bg-green-100 text-green-800">
-                        {getInitials(user.firstName, user.lastName)}
+                        {getInitials(user.name)}
                       </AvatarFallback>
                     </Avatar>
                     {isEditing && (
@@ -308,7 +328,7 @@ export default function ProfilePage() {
                   <div className="flex-1">
                     <div className="space-y-2">
                       <div className="flex items-center space-x-3">
-                        <h2 className="text-2xl font-bold">{user.firstName} {user.lastName}</h2>
+                        <h2 className="text-2xl font-bold">{user.name}</h2>
                         <Badge className={experienceLevel.color}>
                           {experienceLevel.level} Farmer
                         </Badge>
@@ -316,15 +336,15 @@ export default function ProfilePage() {
                       <div className="space-y-1 text-gray-600">
                         <div className="flex items-center space-x-2">
                           <Sprout className="w-4 h-4" />
-                          <span>{user.farmName}</span>
+                          <span>{user.farm_name || 'Farm name not set'}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <MapPin className="w-4 h-4" />
-                          <span>{user.location}</span>
+                          <span>{user.location || 'Location not set'}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-4 h-4" />
-                          <span>Farming since {formatDate(user.joinDate)}</span>
+                          <span>Joined {formatDate(user.created_at || user.stats?.joinDate)}</span>
                         </div>
                       </div>
                     </div>
@@ -347,8 +367,8 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-2">
                     <Sprout className="w-5 h-5 text-green-600" />
                     <div>
-                      <p className="text-2xl font-bold">{user.stats.totalCrops}</p>
-                      <p className="text-sm text-gray-600">Active Crops</p>
+                      <p className="text-2xl font-bold">{user.stats?.totalCrops || 0}</p>
+                      <p className="text-sm text-gray-600">Total Crops</p>
                     </div>
                   </div>
                 </CardContent>
@@ -359,8 +379,8 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-2">
                     <Activity className="w-5 h-5 text-blue-600" />
                     <div>
-                      <p className="text-2xl font-bold">{user.stats.activeSensors}</p>
-                      <p className="text-sm text-gray-600">IoT Sensors</p>
+                      <p className="text-2xl font-bold">{user.stats?.activeCrops || 0}</p>
+                      <p className="text-sm text-gray-600">Active Crops</p>
                     </div>
                   </div>
                 </CardContent>
@@ -371,8 +391,8 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-2">
                     <Target className="w-5 h-5 text-orange-600" />
                     <div>
-                      <p className="text-2xl font-bold">{user.stats.harvestsCompleted}</p>
-                      <p className="text-sm text-gray-600">Harvests</p>
+                      <p className="text-2xl font-bold">{user.stats?.communityPosts || 0}</p>
+                      <p className="text-sm text-gray-600">Posts</p>
                     </div>
                   </div>
                 </CardContent>
@@ -383,8 +403,8 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-2">
                     <TrendingUp className="w-5 h-5 text-purple-600" />
                     <div>
-                      <p className="text-2xl font-bold">{user.farmSize}</p>
-                      <p className="text-sm text-gray-600">Acres</p>
+                      <p className="text-2xl font-bold">{user.farm_size || 'N/A'}</p>
+                      <p className="text-sm text-gray-600">Hectares</p>
                     </div>
                   </div>
                 </CardContent>
@@ -434,55 +454,15 @@ export default function ProfilePage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="name">Full Name</Label>
                     {isEditing ? (
                       <Input
-                        id="firstName"
-                        value={editedUser.firstName}
-                        onChange={(e) => setEditedUser({...editedUser, firstName: e.target.value})}
+                        id="name"
+                        value={editedUser.name || ''}
+                        onChange={(e) => setEditedUser({...editedUser, name: e.target.value})}
                       />
                     ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.firstName}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    {isEditing ? (
-                      <Input
-                        id="lastName"
-                        value={editedUser.lastName}
-                        onChange={(e) => setEditedUser({...editedUser, lastName: e.target.value})}
-                      />
-                    ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.lastName}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    {isEditing ? (
-                      <Input
-                        id="email"
-                        type="email"
-                        value={editedUser.email}
-                        onChange={(e) => setEditedUser({...editedUser, email: e.target.value})}
-                      />
-                    ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.email}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    {isEditing ? (
-                      <Input
-                        id="phone"
-                        value={editedUser.phone}
-                        onChange={(e) => setEditedUser({...editedUser, phone: e.target.value})}
-                      />
-                    ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.phone}</p>
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.name || 'Not set'}</p>
                     )}
                   </div>
                   
@@ -491,11 +471,30 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="location"
-                        value={editedUser.location}
+                        value={editedUser.location || ''}
                         onChange={(e) => setEditedUser({...editedUser, location: e.target.value})}
                       />
                     ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.location}</p>
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.location || 'Not set'}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <p className="py-2 px-3 bg-gray-100 rounded-md text-gray-600">{supabaseUser?.email || 'Not available'}</p>
+                    <p className="text-xs text-gray-500">Email cannot be changed here</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    {isEditing ? (
+                      <Input
+                        id="phone"
+                        value={editedUser.phone || ''}
+                        onChange={(e) => setEditedUser({...editedUser, phone: e.target.value})}
+                      />
+                    ) : (
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.phone || 'Not set'}</p>
                     )}
                   </div>
                   
@@ -504,26 +503,26 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="farmName"
-                        value={editedUser.farmName}
-                        onChange={(e) => setEditedUser({...editedUser, farmName: e.target.value})}
+                        value={editedUser.farm_name || ''}
+                        onChange={(e) => setEditedUser({...editedUser, farm_name: e.target.value})}
                       />
                     ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.farmName}</p>
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.farm_name || 'Not set'}</p>
                     )}
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="farmSize">Farm Size (acres)</Label>
+                    <Label htmlFor="farmSize">Farm Size (hectares)</Label>
                     {isEditing ? (
                       <Input
                         id="farmSize"
                         type="number"
                         step="0.1"
-                        value={editedUser.farmSize}
-                        onChange={(e) => setEditedUser({...editedUser, farmSize: e.target.value})}
+                        value={editedUser.farm_size || ''}
+                        onChange={(e) => setEditedUser({...editedUser, farm_size: e.target.value})}
                       />
                     ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.farmSize} acres</p>
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.farm_size ? `${user.farm_size} hectares` : 'Not set'}</p>
                     )}
                   </div>
                   
@@ -533,11 +532,11 @@ export default function ProfilePage() {
                       <Input
                         id="experience"
                         type="number"
-                        value={editedUser.experience}
-                        onChange={(e) => setEditedUser({...editedUser, experience: e.target.value})}
+                        value={editedUser.experience_years || ''}
+                        onChange={(e) => setEditedUser({...editedUser, experience_years: e.target.value})}
                       />
                     ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.experience} years</p>
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.experience_years ? `${user.experience_years} years` : 'Not set'}</p>
                     )}
                   </div>
                 </div>
@@ -546,7 +545,7 @@ export default function ProfilePage() {
                   <Label htmlFor="specialization">Specialization</Label>
                   {isEditing ? (
                     <Select 
-                      value={editedUser.specialization} 
+                      value={editedUser.specialization || ''} 
                       onValueChange={(value) => setEditedUser({...editedUser, specialization: value})}
                     >
                       <SelectTrigger>
@@ -595,18 +594,25 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {user.achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Award className="w-6 h-6 text-yellow-600" />
+                  {user.achievements && user.achievements.length > 0 ? (
+                    user.achievements.map((achievement: any, index: number) => (
+                      <div key={index} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                          <Award className="w-6 h-6 text-yellow-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{achievement.title}</h3>
+                          <p className="text-gray-600 text-sm mt-1">{achievement.description}</p>
+                          <p className="text-xs text-gray-500 mt-2">Earned on {formatDate(achievement.date)}</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{achievement.title}</h3>
-                        <p className="text-gray-600 text-sm mt-1">{achievement.description}</p>
-                        <p className="text-xs text-gray-500 mt-2">Earned on {formatDate(achievement.date)}</p>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Award className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No achievements yet. Keep farming to earn your first achievement!</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -615,7 +621,7 @@ export default function ProfilePage() {
           {/* SETTINGS TAB */}
           <TabsContent value="settings" className="space-y-6">
             <ProfileSettings 
-              preferences={editedUser.preferences} 
+              preferences={editedUser?.preferences || {}} 
               onPreferenceChange={handlePreferenceChange}
             />
           </TabsContent>

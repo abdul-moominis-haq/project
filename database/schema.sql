@@ -6,6 +6,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   name TEXT,
   location TEXT,
+  phone TEXT,
+  farm_name TEXT,
+  farm_size DECIMAL,
+  experience_years INTEGER,
+  specialization TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  preferences JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

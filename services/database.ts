@@ -6,6 +6,14 @@ export interface Profile {
   id: string
   name: string | null
   location: string | null
+  phone: string | null
+  farm_name: string | null
+  farm_size: number | null
+  experience_years: number | null
+  specialization: string | null
+  bio: string | null
+  avatar_url: string | null
+  preferences: any | null
   created_at: string
   updated_at: string
 }
@@ -76,11 +84,27 @@ export const db = {
     return data
   },
 
-  async updateProfile(userId: string, updates: Partial<Profile>): Promise<boolean> {
+  async createProfile(profile: Omit<Profile, 'created_at' | 'updated_at'>): Promise<boolean> {
     const supabase = createClient()
     const { error } = await supabase
       .from('profiles')
-      .update(updates)
+      .insert([profile])
+    
+    if (error) {
+      console.error('Error creating profile:', error)
+      return false
+    }
+    return true
+  },
+
+  async updateProfile(userId: string, updates: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>): Promise<boolean> {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', userId)
     
     if (error) {
@@ -88,6 +112,45 @@ export const db = {
       return false
     }
     return true
+  },
+
+  async getExtendedProfile(userId: string): Promise<any> {
+    const supabase = createClient()
+    
+    // Get profile data
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+      return null
+    }
+
+    // Get user stats
+    const { data: crops } = await supabase
+      .from('crops')
+      .select('id, status')
+      .eq('user_id', userId)
+
+    const { data: posts } = await supabase
+      .from('community_posts')
+      .select('id')
+      .eq('user_id', userId)
+
+    const stats = {
+      totalCrops: crops?.length || 0,
+      activeCrops: crops?.filter(c => c.status === 'growing').length || 0,
+      communityPosts: posts?.length || 0,
+      joinDate: profile.created_at
+    }
+
+    return {
+      ...profile,
+      stats
+    }
   },
 
   // Crop functions
@@ -304,6 +367,45 @@ export const serverDb = {
       return null
     }
     return data
+  },
+
+  async getExtendedProfile(userId: string): Promise<any> {
+    const supabase = await createServerClient()
+    
+    // Get profile data
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+      return null
+    }
+
+    // Get user stats
+    const { data: crops } = await supabase
+      .from('crops')
+      .select('id, status')
+      .eq('user_id', userId)
+
+    const { data: posts } = await supabase
+      .from('community_posts')
+      .select('id')
+      .eq('user_id', userId)
+
+    const stats = {
+      totalCrops: crops?.length || 0,
+      activeCrops: crops?.filter(c => c.status === 'growing').length || 0,
+      communityPosts: posts?.length || 0,
+      joinDate: profile.created_at
+    }
+
+    return {
+      ...profile,
+      stats
+    }
   },
 
   async getCrops(userId: string): Promise<Crop[]> {
