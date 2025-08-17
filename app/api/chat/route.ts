@@ -3,16 +3,35 @@ import { smartAgriBot, type ChatMessage } from '@/services/chatbot';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Chat API: Received request');
+    
     const body = await request.json();
     const { messages, type, ...params } = body;
+    
+    console.log('Chat API: Request body', { 
+      messagesCount: messages?.length, 
+      type, 
+      params 
+    });
 
     if (!messages || !Array.isArray(messages)) {
+      console.error('Chat API: Invalid messages array');
       return NextResponse.json(
         { error: 'Messages array is required' },
         { status: 400 }
       );
     }
 
+    // Check environment variables
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error('Chat API: OPENROUTER_API_KEY not found in environment');
+      return NextResponse.json(
+        { error: 'OpenRouter API key not configured' },
+        { status: 500 }
+      );
+    }
+
+    console.log('Chat API: Processing request type:', type);
     let response: string;
 
     switch (type) {
@@ -40,15 +59,26 @@ export async function POST(request: NextRequest) {
         response = await smartAgriBot.sendMessage(messages);
     }
 
+    console.log('Chat API: Successfully generated response');
+    
     return NextResponse.json({ 
       message: response,
       timestamp: new Date().toISOString()
     });
 
-  } catch (error) {
-    console.error('Chat API error:', error);
+  } catch (error: any) {
+    console.error('Chat API error:', {
+      message: error.message,
+      stack: error.stack,
+      status: error.status,
+      code: error.code
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to process chat request' },
+      { 
+        error: error.message || 'Failed to process chat request',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

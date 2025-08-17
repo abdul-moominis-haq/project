@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Send, Sprout, Cloud, Calendar, HelpCircle, Bug, Droplets, DollarSign, Leaf } from 'lucide-react';
+import { Send, Sprout, Cloud, Calendar, HelpCircle, Bug, Droplets, DollarSign, Leaf, MessageSquare, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatMessage {
@@ -173,17 +174,36 @@ What would you like to know about today?`,
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-8rem)]">
-        {/* Quick Actions Panel */}
-        <div className="lg:col-span-1">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Sprout className="w-5 h-5 text-green-600" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
+    <Layout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Bot className="w-8 h-8 text-green-600" />
+              AI Assistant
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Get intelligent farming advice powered by AI. Ask about crops, weather, pests, and more.
+            </p>
+          </div>
+          <Badge variant="outline" className="text-green-700 border-green-200">
+            <MessageSquare className="w-4 h-4 mr-1" />
+            AI Powered
+          </Badge>
+        </div>
+
+        {/* Chat Interface */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
+          {/* Quick Actions Panel */}
+          <div className="lg:col-span-1">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sprout className="w-5 h-5 text-green-600" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {quickActions.map((action, index) => (
@@ -285,6 +305,7 @@ What would you like to know about today?`,
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   );
 }

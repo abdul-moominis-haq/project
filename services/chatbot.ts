@@ -1,5 +1,10 @@
 import OpenAI from 'openai';
 
+// Ensure API key is available
+if (!process.env.OPENROUTER_API_KEY) {
+  console.error('OPENROUTER_API_KEY is not set in environment variables');
+}
+
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -38,6 +43,11 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
     model: string = 'openai/gpt-4o-mini'
   ): Promise<string> {
     try {
+      // Check if API key is available
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error('OpenRouter API key is not configured');
+      }
+
       const formattedMessages = [
         { role: 'system' as const, content: this.systemPrompt },
         ...messages.map(msg => ({
@@ -46,6 +56,8 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
         }))
       ];
 
+      console.log('Sending request to OpenRouter...');
+      
       const completion = await openai.chat.completions.create({
         model,
         messages: formattedMessages,
@@ -53,10 +65,36 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
         max_tokens: 1000,
       });
 
-      return completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
-    } catch (error) {
-      console.error('Chatbot error:', error);
-      throw new Error('Failed to get response from agricultural assistant');
+      const response = completion.choices[0]?.message?.content;
+      
+      if (!response) {
+        throw new Error('No response content received from OpenRouter');
+      }
+
+      console.log('Successfully received response from OpenRouter');
+      return response;
+      
+    } catch (error: any) {
+      console.error('Chatbot error details:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        type: error.type,
+        stack: error.stack
+      });
+      
+      // Provide more specific error messages
+      if (error.message?.includes('API key')) {
+        throw new Error('OpenRouter API key is invalid or missing. Please check your configuration.');
+      } else if (error.status === 401) {
+        throw new Error('OpenRouter API authentication failed. Please verify your API key.');
+      } else if (error.status === 429) {
+        throw new Error('OpenRouter API rate limit exceeded. Please try again later.');
+      } else if (error.status === 500) {
+        throw new Error('OpenRouter API service error. Please try again later.');
+      } else {
+        throw new Error(`Failed to get response from agricultural assistant: ${error.message}`);
+      }
     }
   }
 
