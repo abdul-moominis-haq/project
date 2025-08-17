@@ -14,7 +14,8 @@ import {
   Leaf,
   Menu,
   X,
-  User
+  User,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Crops & IoT', href: '/crops', icon: Sprout },
   { name: 'Weather & AI', href: '/weather', icon: Cloud },
   { name: 'Community', href: '/community', icon: Users },
+  { name: 'AI Assistant', href: '/chat', icon: MessageSquare },
   { name: 'Profile', href: '/profile', icon: User },
 ];
 

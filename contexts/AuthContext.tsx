@@ -2,13 +2,15 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
-import { dummyUsers } from '@/lib/dummy-data';
+import { createClient } from '@/utils/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
+  supabaseUser: SupabaseUser | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string, location: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -16,66 +18,111 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
-    const savedUser = localStorage.getItem('smartagri_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      // Auto-login with default user for demo purposes
-      const defaultUser = dummyUsers[0];
-      setUser(defaultUser);
-      localStorage.setItem('smartagri_user', JSON.stringify(defaultUser));
-    }
-    setIsLoading(false);
-  }, []);
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        // Map Supabase user to your User type
+        const mappedUser: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || '',
+          location: session.user.user_metadata?.location || 'Unknown'
+        };
+        setUser(mappedUser);
+      }
+      setIsLoading(false);
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          setSupabaseUser(session.user);
+          const mappedUser: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            location: session.user.user_metadata?.location || 'Unknown'
+          };
+          setUser(mappedUser);
+        } else {
+          setSupabaseUser(null);
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = dummyUsers.find(u => u.email === email);
-    if (foundUser && password === 'password123') {
-      setUser(foundUser);
-      localStorage.setItem('smartagri_user', JSON.stringify(foundUser));
-      setIsLoading(false);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Login error:', error.message);
+        setIsLoading(false);
+        return false;
+      }
+      
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
   const signup = async (name: string, email: string, password: string, location: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      location
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('smartagri_user', JSON.stringify(newUser));
-    setIsLoading(false);
-    return true;
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            location,
+          },
+        },
+      });
+      
+      if (error) {
+        console.error('Signup error:', error.message);
+        setIsLoading(false);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Signup error:', error);
+      setIsLoading(false);
+      return false;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('smartagri_user');
+  const logout = async (): Promise<void> => {
+    await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, supabaseUser, login, signup, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

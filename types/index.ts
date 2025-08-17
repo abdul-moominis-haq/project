@@ -5,6 +5,63 @@ export interface User {
   location: string;
 }
 
+// Database types (Supabase)
+export interface Profile {
+  id: string
+  name: string | null
+  location: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DatabaseCrop {
+  id: string
+  user_id: string
+  name: string
+  type: string
+  planting_date: string | null
+  expected_harvest: string | null
+  status: string
+  notes: string | null
+  image_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface WeatherData {
+  id: string
+  user_id: string
+  location: string
+  temperature: number | null
+  humidity: number | null
+  precipitation: number | null
+  wind_speed: number | null
+  recorded_at: string
+  created_at: string
+}
+
+export interface DatabaseCommunityPost {
+  id: string
+  user_id: string
+  title: string
+  content: string
+  image_url: string | null
+  likes_count: number
+  comments_count: number
+  created_at: string
+  updated_at: string
+  profiles?: Profile
+}
+
+export interface Comment {
+  id: string
+  post_id: string
+  user_id: string
+  content: string
+  created_at: string
+  profiles?: Profile
+}
+
 export interface Weather {
   temperature: number;
   humidity: number;
