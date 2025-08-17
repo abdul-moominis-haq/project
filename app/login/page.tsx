@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-// import { useAuth } from '@/hooks/useAuth'; // Commented out for now
-// import { authAPI } from '@/services/api'; // Commented out for now
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  // const { login, isLoading } = useAuth(); // Commented out for now
+  const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,19 +25,14 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // API call (commented out for now)
-      // await authAPI.login(email, password);
-      // router.push('/dashboard');
-      
-      // Using dummy authentication for now
-      if (email === 'john@example.com' && password === 'password123') {
-        localStorage.setItem('authToken', 'dummy-jwt-token');
+      const success = await login(email, password);
+      if (success) {
         router.push('/dashboard');
       } else {
-        setError('Invalid credentials. Try: john@example.com / password123');
+        setError('Invalid email or password. Please check your credentials and try again.');
       }
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Login failed. Please try again.');
+      setError('Login failed. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -102,12 +96,6 @@ export default function LoginPage() {
                     required
                   />
                 </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800">
-                <strong>Demo Credentials:</strong><br />
-                Email: john@example.com<br />
-                Password: password123
               </div>
             </CardContent>
             
