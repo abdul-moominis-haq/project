@@ -30,9 +30,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: `Hello ${user?.name || 'there'}! 🌱 I'm your SmartAgri agricultural assistant. I'm here to help you with all aspects of farming - from crop management and pest control to weather planning and market insights. 
+      content: `Hello ${user?.name || 'there'}! 🌱 I'm your SmartAgri agricultural assistant powered by Google Gemini AI. I'm here to help you with all aspects of farming - from crop management and pest control to weather planning and market insights. 
 
-Note: I'm currently running in offline mode with basic responses. What would you like to know about today?`,
+What would you like to know about today?`,
       timestamp: new Date()
     }
   ]);

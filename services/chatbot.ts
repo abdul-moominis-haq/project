@@ -1,21 +1,14 @@
-import OpenAI from 'openai';
+// SmartAgri Chatbot Service using Gemini API
 
 // Check if API key is available
-const API_KEY = process.env.OPENROUTER_API_KEY;
-let openai: OpenAI | null = null;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+let isGeminiAvailable = false;
 
-if (API_KEY && API_KEY !== 'your_openrouter_api_key_here') {
-  console.log('Initializing OpenRouter client...');
-  openai = new OpenAI({
-    baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: API_KEY,
-    defaultHeaders: {
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-      'X-Title': 'SmartAgri - Agricultural Assistant',
-    },
-  });
+if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+  console.log('Initializing Gemini API client...');
+  isGeminiAvailable = true;
 } else {
-  console.warn('OpenRouter API key not configured or using placeholder value');
+  console.warn('Gemini API key not configured or using placeholder value');
 }
 
 export interface ChatMessage {
@@ -44,40 +37,73 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
 
   async sendMessage(
     messages: ChatMessage[],
-    model: string = 'openai/gpt-4o-mini'
+    model: string = 'gemini-2.0-flash'
   ): Promise<string> {
     try {
-      // Check if OpenRouter is available
-      if (!openai) {
-        console.log('OpenRouter not available, using fallback response');
+      // Check if Gemini is available
+      if (!isGeminiAvailable || !GEMINI_API_KEY) {
+        console.log('Gemini not available, using fallback response');
         return this.getFallbackResponse(messages);
       }
 
-      const formattedMessages = [
-        { role: 'system' as const, content: this.systemPrompt },
-        ...messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      ];
-
-      console.log('Sending request to OpenRouter...');
+      // Format messages for Gemini API
+      const lastMessage = messages[messages.length - 1];
+      const conversationHistory = messages.slice(0, -1);
       
-      const completion = await openai.chat.completions.create({
-        model,
-        messages: formattedMessages,
-        temperature: 0.7,
-        max_tokens: 1000,
+      // Create conversation context
+      let conversationText = this.systemPrompt + '\n\nConversation:\n';
+      conversationHistory.forEach(msg => {
+        conversationText += `${msg.role === 'user' ? 'Farmer' : 'Assistant'}: ${msg.content}\n`;
       });
+      conversationText += `Farmer: ${lastMessage.content}\nAssistant:`;
 
-      const response = completion.choices[0]?.message?.content;
+      console.log('Sending request to Gemini API...');
       
-      if (!response) {
-        throw new Error('No response content received from OpenRouter');
+      const requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: conversationText
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+          topP: 0.95,
+          topK: 40
+        }
+      };
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': GEMINI_API_KEY,
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API Error:', response.status, errorText);
+        throw new Error(`Gemini API error: ${response.status}`);
       }
 
-      console.log('Successfully received response from OpenRouter');
-      return response;
+      const data = await response.json();
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!generatedText) {
+        throw new Error('No response content received from Gemini');
+      }
+
+      console.log('Successfully received response from Gemini');
+      return generatedText.trim();
       
     } catch (error: any) {
       console.error('Chatbot error details:', {
@@ -184,22 +210,44 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
   // Method to test API connectivity
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
-      if (!openai) {
+      if (!isGeminiAvailable || !GEMINI_API_KEY) {
         return {
           success: false,
-          message: 'OpenRouter API not configured. Using fallback responses.'
+          message: 'Gemini API not configured. Using fallback responses.'
         };
       }
 
-      const testMessages: ChatMessage[] = [
-        { role: 'user', content: 'Hello' }
-      ];
+      // Test with a simple message
+      const testResponse = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': GEMINI_API_KEY,
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: 'Hello, respond with just "API test successful"'
+                  }
+                ]
+              }
+            ]
+          }),
+        }
+      );
 
-      await this.sendMessage(testMessages);
-      return {
-        success: true,
-        message: 'OpenRouter API connection successful!'
-      };
+      if (testResponse.ok) {
+        return {
+          success: true,
+          message: 'Gemini API connection successful!'
+        };
+      } else {
+        throw new Error(`API test failed with status: ${testResponse.status}`);
+      }
     } catch (error: any) {
       return {
         success: false,

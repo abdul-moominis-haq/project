@@ -23,10 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check environment variables
-    if (!process.env.OPENROUTER_API_KEY) {
-      console.error('Chat API: OPENROUTER_API_KEY not found in environment');
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('Chat API: GEMINI_API_KEY not found in environment');
       return NextResponse.json(
-        { error: 'OpenRouter API key not configured' },
+        { error: 'Gemini API key not configured' },
         { status: 500 }
       );
     }
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'SmartAgri Agricultural Assistant API is running',
+    aiProvider: 'Google Gemini 2.0 Flash',
     endpoints: {
       POST: 'Send chat messages',
       types: [
