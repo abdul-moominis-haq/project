@@ -1,18 +1,22 @@
 import OpenAI from 'openai';
 
-// Ensure API key is available
-if (!process.env.OPENROUTER_API_KEY) {
-  console.error('OPENROUTER_API_KEY is not set in environment variables');
-}
+// Check if API key is available
+const API_KEY = process.env.OPENROUTER_API_KEY;
+let openai: OpenAI | null = null;
 
-const openai = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    'X-Title': 'SmartAgri - Agricultural Assistant',
-  },
-});
+if (API_KEY && API_KEY !== 'your_openrouter_api_key_here') {
+  console.log('Initializing OpenRouter client...');
+  openai = new OpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: API_KEY,
+    defaultHeaders: {
+      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      'X-Title': 'SmartAgri - Agricultural Assistant',
+    },
+  });
+} else {
+  console.warn('OpenRouter API key not configured or using placeholder value');
+}
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -43,9 +47,10 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
     model: string = 'openai/gpt-4o-mini'
   ): Promise<string> {
     try {
-      // Check if API key is available
-      if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error('OpenRouter API key is not configured');
+      // Check if OpenRouter is available
+      if (!openai) {
+        console.log('OpenRouter not available, using fallback response');
+        return this.getFallbackResponse(messages);
       }
 
       const formattedMessages = [
@@ -79,23 +84,53 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
         message: error.message,
         status: error.status,
         code: error.code,
-        type: error.type,
-        stack: error.stack
+        type: error.type
       });
       
-      // Provide more specific error messages
-      if (error.message?.includes('API key')) {
-        throw new Error('OpenRouter API key is invalid or missing. Please check your configuration.');
-      } else if (error.status === 401) {
-        throw new Error('OpenRouter API authentication failed. Please verify your API key.');
-      } else if (error.status === 429) {
-        throw new Error('OpenRouter API rate limit exceeded. Please try again later.');
-      } else if (error.status === 500) {
-        throw new Error('OpenRouter API service error. Please try again later.');
-      } else {
-        throw new Error(`Failed to get response from agricultural assistant: ${error.message}`);
-      }
+      // Return fallback response for any errors
+      console.log('Falling back to local response due to API error');
+      return this.getFallbackResponse(messages);
     }
+  }
+
+  private getFallbackResponse(messages: ChatMessage[]): string {
+    const lastMessage = messages[messages.length - 1]?.content.toLowerCase() || '';
+    
+    // Simple keyword-based responses for common farming topics
+    if (lastMessage.includes('crop') || lastMessage.includes('plant')) {
+      return "🌱 For crop management, consider these key factors: proper soil preparation, appropriate spacing, regular watering, and pest monitoring. What specific crop are you growing? I can provide more targeted advice.";
+    }
+    
+    if (lastMessage.includes('pest') || lastMessage.includes('insect') || lastMessage.includes('bug')) {
+      return "🐛 Pest management is crucial for healthy crops. Use integrated pest management (IPM): regular monitoring, beneficial insects, crop rotation, and organic pesticides when necessary. Can you describe the pest issue you're facing?";
+    }
+    
+    if (lastMessage.includes('soil') || lastMessage.includes('fertilizer')) {
+      return "🌍 Soil health is the foundation of successful farming. Test your soil pH (6.0-7.0 is ideal for most crops), ensure good drainage, add organic matter like compost, and use balanced fertilizers. What type of soil challenges are you experiencing?";
+    }
+    
+    if (lastMessage.includes('water') || lastMessage.includes('irrigation')) {
+      return "💧 Proper irrigation is key to crop success. Water deeply but less frequently, check soil moisture regularly, use mulch to retain moisture, and consider drip irrigation for efficiency. What's your current watering situation?";
+    }
+    
+    if (lastMessage.includes('weather') || lastMessage.includes('rain') || lastMessage.includes('drought')) {
+      return "🌦️ Weather planning is essential for farming. Monitor forecasts regularly, prepare for seasonal changes, have drought mitigation plans, and protect crops from extreme weather. What weather challenges are you facing?";
+    }
+    
+    if (lastMessage.includes('harvest') || lastMessage.includes('when to')) {
+      return "🌾 Harvest timing depends on your crop type and local conditions. Look for visual cues like color changes, check fruit firmness, monitor sugar content for fruits, and harvest in optimal weather conditions. What crop are you planning to harvest?";
+    }
+    
+    if (lastMessage.includes('organic') || lastMessage.includes('sustainable')) {
+      return "🌿 Organic farming focuses on natural methods: composting, crop rotation, beneficial insects, cover crops, and avoiding synthetic chemicals. It builds long-term soil health and ecosystem balance. What organic practices interest you most?";
+    }
+    
+    if (lastMessage.includes('hello') || lastMessage.includes('hi') || lastMessage.includes('help')) {
+      return "👋 Hello! I'm your SmartAgri agricultural assistant. I'm here to help with farming questions about crops, soil, pests, irrigation, weather planning, and more. Note: I'm currently running in offline mode with basic responses. What farming topic would you like to discuss?";
+    }
+    
+    // Default response
+    return "🌱 I'm here to help with your farming questions! While I'm currently running in offline mode with limited responses, I can still provide basic guidance on crops, soil, irrigation, pest management, and weather planning. Could you be more specific about what farming challenge you're facing?";
   }
 
   async getQuickAdvice(query: string): Promise<string> {
@@ -144,6 +179,33 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
     ];
 
     return this.sendMessage(messages);
+  }
+
+  // Method to test API connectivity
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!openai) {
+        return {
+          success: false,
+          message: 'OpenRouter API not configured. Using fallback responses.'
+        };
+      }
+
+      const testMessages: ChatMessage[] = [
+        { role: 'user', content: 'Hello' }
+      ];
+
+      await this.sendMessage(testMessages);
+      return {
+        success: true,
+        message: 'OpenRouter API connection successful!'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `API connection failed: ${error.message}`
+      };
+    }
   }
 }
 

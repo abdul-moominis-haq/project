@@ -32,12 +32,13 @@ export default function ChatPage() {
       role: 'assistant',
       content: `Hello ${user?.name || 'there'}! 🌱 I'm your SmartAgri agricultural assistant. I'm here to help you with all aspects of farming - from crop management and pest control to weather planning and market insights. 
 
-What would you like to know about today?`,
+Note: I'm currently running in offline mode with basic responses. What would you like to know about today?`,
       timestamp: new Date()
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'online' | 'offline'>('unknown');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -110,7 +111,24 @@ What would you like to know about today?`,
     if (inputRef.current) {
       inputRef.current.focus();
     }
+    
+    // Check connection status
+    checkConnectionStatus();
   }, []);
+
+  const checkConnectionStatus = async () => {
+    try {
+      const response = await fetch('/api/chat/test');
+      if (response.ok) {
+        const data = await response.json();
+        setConnectionStatus(data.connection?.success ? 'online' : 'offline');
+      } else {
+        setConnectionStatus('offline');
+      }
+    } catch (error) {
+      setConnectionStatus('offline');
+    }
+  };
 
   const sendMessage = async (content: string, type: string = 'default', params: any = {}) => {
     if (!content.trim() && type === 'default') return;
@@ -187,10 +205,23 @@ What would you like to know about today?`,
               Get intelligent farming advice powered by AI. Ask about crops, weather, pests, and more.
             </p>
           </div>
-          <Badge variant="outline" className="text-green-700 border-green-200">
-            <MessageSquare className="w-4 h-4 mr-1" />
-            AI Powered
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-green-700 border-green-200">
+              <MessageSquare className="w-4 h-4 mr-1" />
+              AI Powered
+            </Badge>
+            <Badge 
+              variant={connectionStatus === 'online' ? 'default' : 'secondary'}
+              className={connectionStatus === 'online' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}
+            >
+              <div className={`w-2 h-2 rounded-full mr-2 ${
+                connectionStatus === 'online' ? 'bg-green-500' : 
+                connectionStatus === 'offline' ? 'bg-yellow-500' : 'bg-gray-500'
+              }`} />
+              {connectionStatus === 'online' ? 'Online' : 
+               connectionStatus === 'offline' ? 'Offline Mode' : 'Connecting...'}
+            </Badge>
+          </div>
         </div>
 
         {/* Chat Interface */}
