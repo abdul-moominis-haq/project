@@ -42,91 +42,36 @@ import {
 // Remove dummy data - using real Supabase data now
 
 export default function ProfilePage() {
-  const { user: authUser, supabaseUser } = useAuth();
+  const { user: authUser, supabaseUser, profile, refreshProfile } = useAuth();
   
-  // State for profile data
-  const [user, setUser] = useState<any>(null);
+  // State for editing
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<any>(null);
   const [alertMessage, setAlertMessage] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const [initialLoading, setInitialLoading] = useState(true);
 
-  // Load profile data from Supabase
+  // Set user data from profile context
+  const user = profile;
+
+  // Initialize edit form when editing starts
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!supabaseUser) {
-        setInitialLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/profile');
-        
-        if (response.status === 404) {
-          // Profile doesn't exist, create it
-          const createResponse = await fetch('/api/profile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              name: authUser?.name || supabaseUser.email?.split('@')[0] || 'User',
-              location: authUser?.location || '',
-              phone: '',
-              farm_name: `${authUser?.name || 'User'}'s Farm`,
-              farm_size: null,
-              experience_years: null,
-              specialization: '',
-              bio: '',
-              avatar_url: null,
-              preferences: {
-                notifications: {
-                  email: true,
-                  sms: true,
-                  push: true,
-                  weather: true,
-                  harvest: true,
-                  maintenance: false
-                },
-                privacy: {
-                  profileVisibility: 'public',
-                  dataSharing: true,
-                  analytics: true
-                },
-                language: 'en',
-                timezone: 'Africa/Nairobi',
-                units: 'metric'
-              }
-            }),
-          });
-
-          if (createResponse.ok) {
-            const data = await createResponse.json();
-            setUser(data.profile);
-            setEditedUser(data.profile);
-          }
-        } else if (response.ok) {
-          const data = await response.json();
-          setUser(data.profile);
-          setEditedUser(data.profile);
-        } else {
-          console.error('Failed to load profile');
-        }
-      } catch (error) {
-        console.error('Error loading profile:', error);
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [supabaseUser, authUser]);
+    if (isEditing && profile) {
+      setEditedUser({
+        name: profile.name || '',
+        location: profile.location || '',
+        phone: profile.phone || '',
+        farm_name: profile.farm_name || '',
+        farm_size: profile.farm_size || '',
+        experience_years: profile.experience_years || '',
+        bio: profile.bio || '',
+        specialization: profile.specialization || ''
+      });
+    }
+  }, [isEditing, profile]);
 
   const handleEditProfile = () => {
     setIsEditing(true);
-    setEditedUser(user);
   };
 
   const handleSaveProfile = async () => {
@@ -153,9 +98,8 @@ export default function ProfilePage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setUser(data.profile);
-        setEditedUser(data.profile);
+        // Refresh profile data from AuthContext
+        await refreshProfile();
         setIsEditing(false);
         setAlertMessage({type: 'success', message: 'Profile updated successfully!'});
         setTimeout(() => setAlertMessage(null), 5000);
@@ -237,21 +181,7 @@ export default function ProfilePage() {
 
   const experienceLevel = user?.experience_years ? getExperienceLevel(user.experience_years) : { level: 'Not specified', color: 'bg-gray-100 text-gray-800' };
 
-  // Show loading state
-  if (initialLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p>Loading profile...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Show error state if no user data
+  // Loading state - using profile context
   if (!user) {
     return (
       <Layout>

@@ -8,9 +8,11 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 interface AuthContextType {
   user: User | null;
   supabaseUser: SupabaseUser | null;
+  profile: any | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string, location: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -19,8 +21,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
+
+  // Function to fetch profile data from database
+  const fetchProfile = async (userId: string) => {
+    try {
+      const response = await fetch('/api/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data.profile);
+        return data.profile;
+      } else if (response.status === 404) {
+        // Profile doesn't exist, we'll handle this in the profile page
+        setProfile(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+      return null;
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (supabaseUser) {
+      await fetchProfile(supabaseUser.id);
+    }
+  };
 
   useEffect(() => {
     // Get initial session
@@ -36,6 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           location: session.user.user_metadata?.location || 'Unknown'
         };
         setUser(mappedUser);
+        
+        // Fetch profile data from database
+        await fetchProfile(session.user.id);
       }
       setIsLoading(false);
     };
@@ -54,9 +86,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             location: session.user.user_metadata?.location || 'Unknown'
           };
           setUser(mappedUser);
+          
+          // Fetch profile data from database
+          await fetchProfile(session.user.id);
         } else {
           setSupabaseUser(null);
           setUser(null);
+          setProfile(null);
         }
         setIsLoading(false);
       }
@@ -122,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, supabaseUser, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, supabaseUser, profile, login, signup, logout, refreshProfile, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

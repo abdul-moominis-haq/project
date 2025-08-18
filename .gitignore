@@ -19,6 +19,23 @@
 .DS_Store
 *.pem
 
+# documentation and backup files
+*.md
+*-backup.*
+*backup*
+
+# test directories
+app/test-*
+app/*-test
+app/auth-test
+app/todos-example
+app/profiles-server
+app/chatbot-debug
+
+# build artifacts
+tsconfig.tsbuildinfo
+/out/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
