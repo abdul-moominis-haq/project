@@ -135,3 +135,22 @@ export interface WeatherHistoricalData {
   humidity: number;
   rainfall: number;
 }
+
+// Weather prediction data format for AI recommendations
+export interface WeatherPredictionData {
+  Average_Relative_Humidity: number;
+  Minimum_Temperature: number;
+  Maximum_Temperature: number;
+  Cloud_Cover: number;
+  Station_Level_Pressure: number;
+  Date: string;
+}
+
+// Extended weather prediction with additional fields if needed
+export interface ExtendedWeatherPrediction extends WeatherPredictionData {
+  location?: string;
+  region?: string;
+  predicted_rainfall?: number;
+  weather_condition?: string;
+  farming_recommendations?: string[];
+}

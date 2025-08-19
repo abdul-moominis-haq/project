@@ -1,4 +1,6 @@
 // Ghana-specific weather service for farming and agriculture
+import { WeatherPredictionData, ExtendedWeatherPrediction } from '@/types';
+
 export interface GhanaWeatherData {
   location: string;
   region: string;
@@ -356,6 +358,11 @@ class GhanaWeatherService {
     return Object.keys(this.ghanaRegions);
   }
 
+  // Get list of all supported Ghana regions
+  getSupportedRegions(): string[] {
+    return Object.keys(this.ghanaRegions);
+  }
+
   // Get region-specific crop information
   getRegionCrops(region: string): string[] {
     return this.ghanaRegions[region]?.mainCrops || [];
@@ -367,6 +374,119 @@ class GhanaWeatherService {
     return {
       rainySeasonMonths: regionInfo.rainySeasonMonths,
       drySeasonMonths: regionInfo.drySeasonMonths
+    };
+  }
+
+  // Process weather prediction data for AI crop recommendations
+  processPredictionData(predictionData: WeatherPredictionData, region?: string): ExtendedWeatherPrediction {
+    const targetRegion = region || 'Greater Accra';
+    const regionInfo = this.ghanaRegions[targetRegion] || this.ghanaRegions['Greater Accra'];
+    
+    // Calculate average temperature from min/max
+    const avgTemperature = (predictionData.Minimum_Temperature + predictionData.Maximum_Temperature) / 2;
+    
+    // Determine weather condition based on cloud cover and humidity
+    let weatherCondition = 'Clear';
+    if (predictionData.Cloud_Cover > 70) {
+      weatherCondition = 'Cloudy';
+    } else if (predictionData.Cloud_Cover > 30) {
+      weatherCondition = 'Partly Cloudy';
+    }
+
+    // Estimate rainfall based on humidity and cloud cover
+    let predictedRainfall = 0;
+    if (predictionData.Average_Relative_Humidity > 80 && predictionData.Cloud_Cover > 60) {
+      predictedRainfall = Math.max(0, (predictionData.Average_Relative_Humidity - 60) * 0.2);
+    }
+
+    // Generate farming recommendations based on prediction
+    const farmingRecommendations = this.generateFarmingRecommendations(predictionData, regionInfo, avgTemperature);
+
+    return {
+      ...predictionData,
+      location: targetRegion,
+      region: targetRegion,
+      predicted_rainfall: predictedRainfall,
+      weather_condition: weatherCondition,
+      farming_recommendations: farmingRecommendations
+    };
+  }
+
+  // Generate farming recommendations based on prediction data
+  private generateFarmingRecommendations(
+    predictionData: WeatherPredictionData, 
+    regionInfo: any, 
+    avgTemperature: number
+  ): string[] {
+    const recommendations: string[] = [];
+    
+    // Temperature-based recommendations
+    if (predictionData.Maximum_Temperature > 35) {
+      recommendations.push('High temperature expected - consider shade protection for crops and increase irrigation');
+    }
+    if (predictionData.Minimum_Temperature < 15) {
+      recommendations.push('Low temperature expected - protect sensitive crops from cold stress');
+    }
+
+    // Humidity-based recommendations
+    if (predictionData.Average_Relative_Humidity > 85) {
+      recommendations.push('High humidity levels - monitor for fungal diseases and ensure good ventilation');
+    }
+    if (predictionData.Average_Relative_Humidity < 40) {
+      recommendations.push('Low humidity levels - increase irrigation frequency and consider mulching');
+    }
+
+    // Cloud cover recommendations
+    if (predictionData.Cloud_Cover < 20) {
+      recommendations.push('Clear skies expected - excellent for harvesting and field operations');
+    }
+    if (predictionData.Cloud_Cover > 80) {
+      recommendations.push('Heavy cloud cover - potential for rainfall, prepare drainage systems');
+    }
+
+    // Pressure-based recommendations
+    if (predictionData.Station_Level_Pressure < 1010) {
+      recommendations.push('Low pressure system - expect unsettled weather, secure loose structures');
+    }
+
+    // Crop-specific recommendations for the region
+    if (regionInfo.mainCrops.includes('cocoa') && avgTemperature > 30) {
+      recommendations.push('Cocoa farms: High temperature may stress plants - ensure adequate shade');
+    }
+    if (regionInfo.mainCrops.includes('maize') && predictionData.Average_Relative_Humidity < 50) {
+      recommendations.push('Maize fields: Low humidity - ensure adequate soil moisture for optimal growth');
+    }
+
+    return recommendations;
+  }
+
+  // Convert prediction data to GhanaWeatherData format
+  convertPredictionToWeatherData(predictionData: WeatherPredictionData, region?: string): GhanaWeatherData {
+    const processedData = this.processPredictionData(predictionData, region);
+    const avgTemperature = (predictionData.Minimum_Temperature + predictionData.Maximum_Temperature) / 2;
+    const regionInfo = this.ghanaRegions[region || 'Greater Accra'];
+
+    return {
+      location: processedData.location || 'Ghana',
+      region: processedData.region || 'Greater Accra',
+      temperature: Math.round(avgTemperature),
+      humidity: predictionData.Average_Relative_Humidity,
+      rainfall: processedData.predicted_rainfall || 0,
+      windSpeed: 5, // Default value as not provided in prediction data
+      description: processedData.weather_condition || 'Partly Cloudy',
+      forecast: {
+        today: `${processedData.weather_condition} with temperature range ${predictionData.Minimum_Temperature}-${predictionData.Maximum_Temperature}°C`,
+        tomorrow: `Similar conditions expected with ${predictionData.Average_Relative_Humidity}% humidity`,
+        weekly: `Weather patterns suitable for ${regionInfo?.mainCrops?.slice(0, 2).join(' and ')} cultivation`
+      },
+      farmingAdvice: {
+        planting: processedData.farming_recommendations?.find(r => r.includes('plant')) || 'Monitor weather conditions before planting',
+        irrigation: processedData.farming_recommendations?.find(r => r.includes('irrigation')) || 'Maintain regular irrigation schedule',
+        harvesting: processedData.farming_recommendations?.find(r => r.includes('harvest')) || 'Good conditions for harvesting',
+        pest_control: processedData.farming_recommendations?.find(r => r.includes('diseases')) || 'Monitor for pest activity'
+      },
+      cropRecommendations: regionInfo?.mainCrops?.slice(0, 3) || ['maize', 'cassava', 'plantain'],
+      alerts: processedData.farming_recommendations || []
     };
   }
 }
