@@ -12,18 +12,8 @@ export interface Profile {
   experience_years: number | null
   specialization: string | null
   bio: string | null
-  preferences: Record<string, any>
-  created_at: string
-  updated_at: string
-  location: string | null
-  phone: string | null
-  farm_name: string | null
-  farm_size: number | null
-  experience_years: number | null
-  specialization: string | null
-  bio: string | null
   avatar_url: string | null
-  preferences: any | null
+  preferences: Record<string, any> | null
   created_at: string
   updated_at: string
 }
