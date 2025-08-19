@@ -64,18 +64,7 @@ export default function ChatPage() {
   role: 'assistant' as const,
   content: `# Welcome to SmartAgri Assistant
 
-Hello ${user?.name || 'there'}! I'm your personal AI farming companion, built to support you with practical agricultural knowledge and real-time data.
-
-## How I can help you today:
-
-- Crop Management: Guidance on planting, growing, and harvesting  
-- Weather Insights: Recommendations based on local conditions  
-- Pest & Disease Control: Help identifying and managing crop issues  
-- Irrigation Planning: Strategies for effective water use  
-- Market Intelligence: Updates on crop prices and demand trends  
-- Soil Health: Testing methods and improvement tips  
-
-Ask me anything related to your crops, location, or farming challenges. I’m here to help you make better decisions and improve productivity on your farm.  
+Hello ${user?.name || 'there'}! I'm your personal AI farming companion, built to support you with practical agricultural knowledge and real-time data. 
 
 What would you like to explore first?`,
   timestamp: new Date()
