@@ -272,9 +272,9 @@ export default function ProfilePage() {
                 <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
                   <div className="relative">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={user.avatar_url} alt={user.name} />
+                      <AvatarImage src={user.avatar_url || ''} alt={user.name || 'User'} />
                       <AvatarFallback className="text-2xl bg-green-100 text-green-800">
-                        {getInitials(user.name)}
+                        {getInitials(user.name || 'User')}
                       </AvatarFallback>
                     </Avatar>
                     {isEditing && (
@@ -316,7 +316,7 @@ export default function ProfilePage() {
                   <div className="flex flex-col space-y-2">
                     <div className="text-center">
                       <p className="text-sm text-gray-500">Farm Efficiency</p>
-                      <p className="text-2xl font-bold text-green-600">{user.stats.farmEfficiency}%</p>
+                      <p className="text-2xl font-bold text-green-600">{user.stats?.farmEfficiency || 85}%</p>
                     </div>
                   </div>
                 </div>
@@ -388,7 +388,7 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Experience</Label>
-                    <p className="mt-1">{user.experience} years</p>
+                    <p className="mt-1">{user.experience_years ? `${user.experience_years} years` : 'Not specified'}</p>
                   </div>
                 </div>
               </CardContent>

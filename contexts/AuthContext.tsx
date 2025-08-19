@@ -190,7 +190,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async (): Promise<void> => {
-    await supabase.auth.signOut();
+    try {
+      console.log('Starting logout process...');
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signout error:', error);
+      }
+      
+      // Clear local state
+      setUser(null);
+      setSupabaseUser(null);
+      setProfile(null);
+      
+      // Clear local storage for the current user
+      if (supabaseUser?.id) {
+        localStorageService.clearUserData(supabaseUser.id);
+        console.log('Cleared local storage for user:', supabaseUser.id);
+      }
+      
+      console.log('Logout successful, redirecting to login...');
+      
+      // Redirect to login page
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, clear local state and redirect
+      setUser(null);
+      setSupabaseUser(null);
+      setProfile(null);
+      
+      // Try to clear any stored user data
+      try {
+        if (supabaseUser?.id) {
+          localStorageService.clearUserData(supabaseUser.id);
+        }
+      } catch (storageError) {
+        console.error('Error clearing storage during logout:', storageError);
+      }
+      
+      // Always redirect to login, even if there were errors
+      window.location.href = '/login';
+    }
   };
 
   return (

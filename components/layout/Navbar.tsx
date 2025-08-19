@@ -31,6 +31,19 @@ export function Navbar() {
   const pathname = usePathname();
   const { logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // The logout function handles the redirect, so we don't need to do anything else
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   // Prevent body scroll when mobile menu is open
   React.useEffect(() => {
@@ -124,13 +137,14 @@ export function Navbar() {
             {/* Right side - Desktop & Tablet */}
             <div className="hidden md:flex items-center">
               <Button
-                onClick={logout}
+                onClick={handleLogout}
                 variant="ghost"
                 size="sm"
                 className="text-red-700 hover:bg-red-50 text-xs lg:text-sm px-2 lg:px-3"
+                disabled={isLoggingOut}
               >
                 <LogOut className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" />
-                <span className="hidden lg:block">Logout</span>
+                <span className="hidden lg:block">{isLoggingOut ? 'Signing out...' : 'Logout'}</span>
               </Button>
             </div>
 
@@ -196,15 +210,16 @@ export function Navbar() {
                 <div className="border-t pt-4">
                   <Button
                     onClick={() => {
-                      logout();
+                      handleLogout();
                       setIsMobileMenuOpen(false);
                     }}
                     variant="outline"
                     size="sm"
                     className="w-full justify-center text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
+                    disabled={isLoggingOut}
                   >
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    {isLoggingOut ? 'Signing out...' : 'Sign Out'}
                   </Button>
                 </div>
               </div>
