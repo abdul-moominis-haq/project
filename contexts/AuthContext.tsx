@@ -34,7 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(data.profile);
         return data.profile;
       } else if (response.status === 404) {
-        // Profile doesn't exist, we'll handle this in the profile page
+        // Profile doesn't exist - this should now be handled by the API
+        console.log('Profile not found (404), but should be auto-created');
+        setProfile(null);
+        return null;
+      } else {
+        // Other error
+        const errorData = await response.json();
+        console.error('Profile fetch error:', errorData);
         setProfile(null);
         return null;
       }

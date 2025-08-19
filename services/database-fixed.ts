@@ -282,7 +282,16 @@ export const serverDb = {
         // Create basic profile with just the user ID
         // The name and other details will be filled in when the user edits their profile
         const newProfile = {
-          id: userId
+          id: userId,
+          name: 'New User', // Default name
+          location: null,
+          phone: null,
+          farm_name: null,
+          farm_size: null,
+          experience_years: null,
+          specialization: null,
+          bio: null,
+          preferences: {}
         }
 
         const { data: createdProfile, error: createError } = await supabase

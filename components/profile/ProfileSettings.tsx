@@ -26,6 +26,26 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ preferences, onPreferenceChange }: ProfileSettingsProps) {
+  // Provide default structure for preferences to avoid undefined errors
+  const safePreferences = {
+    notifications: {
+      email: true,
+      sms: false,
+      push: true,
+      weather: true,
+      harvest: true,
+      community: false,
+      ...preferences?.notifications
+    },
+    privacy: {
+      profile_visibility: 'public',
+      contact_info: 'friends',
+      activity_status: true,
+      ...preferences?.privacy
+    },
+    ...preferences
+  };
+
   const notificationSettings = [
     {
       key: 'email',
@@ -103,7 +123,7 @@ export function ProfileSettings({ preferences, onPreferenceChange }: ProfileSett
                     </Label>
                     <Switch
                       id={setting.key}
-                      checked={preferences.notifications[setting.key]}
+                      checked={safePreferences.notifications[setting.key]}
                       onCheckedChange={(checked) => onPreferenceChange('notifications', setting.key, checked)}
                     />
                   </div>
@@ -135,7 +155,7 @@ export function ProfileSettings({ preferences, onPreferenceChange }: ProfileSett
                       type="radio"
                       name="profileVisibility"
                       value={option}
-                      checked={preferences.privacy.profileVisibility === option}
+                      checked={safePreferences.privacy.profileVisibility === option}
                       onChange={(e) => onPreferenceChange('privacy', 'profileVisibility', e.target.value)}
                       className="w-4 h-4 text-green-600"
                     />
@@ -157,7 +177,7 @@ export function ProfileSettings({ preferences, onPreferenceChange }: ProfileSett
                     </Label>
                     <Switch
                       id={setting.key}
-                      checked={preferences.privacy[setting.key]}
+                      checked={safePreferences.privacy[setting.key]}
                       onCheckedChange={(checked) => onPreferenceChange('privacy', setting.key, checked)}
                     />
                   </div>

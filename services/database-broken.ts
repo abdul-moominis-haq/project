@@ -15,6 +15,17 @@ export interface Profile {
   preferences: Record<string, any>
   created_at: string
   updated_at: string
+  location: string | null
+  phone: string | null
+  farm_name: string | null
+  farm_size: number | null
+  experience_years: number | null
+  specialization: string | null
+  bio: string | null
+  avatar_url: string | null
+  preferences: any | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Crop {
@@ -49,13 +60,23 @@ export interface CommunityPost {
   title: string
   content: string
   image_url: string | null
-  likes: number
-  comments: number
+  likes_count: number
+  comments_count: number
   created_at: string
   updated_at: string
+  profiles?: Profile
 }
 
-// Database service object
+export interface Comment {
+  id: string
+  post_id: string
+  user_id: string
+  content: string
+  created_at: string
+  profiles?: Profile
+}
+
+// Client-side database functions
 export const db = {
   // Profile functions
   async getProfile(userId: string): Promise<Profile | null> {
@@ -209,7 +230,7 @@ export const db = {
     return data || []
   },
 
-  // Community functions
+  // Community posts functions
   async getCommunityPosts(limit = 20): Promise<CommunityPost[]> {
     const supabase = createClient()
     const { data, error } = await supabase
@@ -232,69 +253,159 @@ export const db = {
     return data || []
   },
 
-  async createCommunityPost(post: Omit<CommunityPost, 'id' | 'created_at' | 'updated_at' | 'likes' | 'comments'>): Promise<boolean> {
+  async addCommunityPost(post: Omit<CommunityPost, 'id' | 'likes_count' | 'comments_count' | 'created_at' | 'updated_at'>): Promise<boolean> {
     const supabase = createClient()
     const { error } = await supabase
       .from('community_posts')
-      .insert([{
-        ...post,
-        likes: 0,
-        comments: 0
-      }])
+      .insert([post])
     
     if (error) {
-      console.error('Error creating community post:', error)
+      console.error('Error adding community post:', error)
       return false
     }
+    return true
+  },
+
+  // Comments functions
+  async getComments(postId: string): Promise<Comment[]> {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('comments')
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          name,
+          location
+        )
+      `)
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching comments:', error)
+      return []
+    }
+    return data || []
+  },
+
+  async addComment(comment: Omit<Comment, 'id' | 'created_at'>): Promise<boolean> {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('comments')
+      .insert([comment])
+    
+    if (error) {
+      console.error('Error adding comment:', error)
+      return false
+    }
+    return true
+  },
+
+  // Likes functions
+  async toggleLike(postId: string, userId: string): Promise<boolean> {
+    const supabase = createClient()
+    
+    // Check if like exists
+    const { data: existingLike } = await supabase
+      .from('likes')
+      .select('id')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .single()
+    
+    if (existingLike) {
+      // Unlike
+      const { error } = await supabase
+        .from('likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', userId)
+      
+      if (error) {
+        console.error('Error removing like:', error)
+        return false
+      }
+    } else {
+      // Like
+      const { error } = await supabase
+        .from('likes')
+        .insert([{ post_id: postId, user_id: userId }])
+      
+      if (error) {
+        console.error('Error adding like:', error)
+        return false
+      }
+    }
+    
     return true
   }
 }
 
-// Server-side database functions that can only be used in API routes
+// Server-side database functions (for server components)
 export const serverDb = {
-  async getExtendedProfile(userId: string): Promise<any> {
-    try {
-      const supabase = await createServerClient()
-      
-      // Get the user's auth data first
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError || !user) {
-        console.error('User not found in auth:', userError)
-        throw new Error('User not found in auth')
-      }
+  async getProfile(userId: string): Promise<Profile | null> {
+    const supabase = await createServerClient()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    if (error) {
+      console.error('Error fetching profile:', error)
+      return null
+    }
+    return data
+  },
 
-      // Try to get existing profile
-      const { data: profile, error } = await supabase
+  async getExtendedProfile(userId: string): Promise<any> {
+    const supabase = await createServerClient()
+    
+    try {
+      // Get profile data
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error)
-        throw error
+        .maybeSingle() // Use maybeSingle to avoid error when no profile exists
+      
+      if (profileError) {
+        console.error('Error fetching profile:', profileError)
+        throw profileError
       }
 
-      // If no profile exists, create one
+      // If no profile exists, create a basic one
       if (!profile) {
         console.log('No profile found for user', userId, 'creating basic profile...')
         
         // Create basic profile with just the user ID
         // The name and other details will be filled in when the user edits their profile
         const newProfile = {
-          id: userId
+          id: userId,
+          name: 'New User', // Default name
+          location: null,
+          phone: null,
+          farm_name: null,
+          farm_size: null,
+          experience_years: null,
+          specialization: null,
+          bio: null,
+          preferences: {}
         }
 
         const { data: createdProfile, error: createError } = await supabase
           .from('profiles')
           .insert([newProfile])
-          .select('*')
+          .select()
           .single()
 
         if (createError) {
           console.error('Error creating profile:', createError)
           throw createError
         }
+
+        console.log('Successfully created profile for user', userId)
 
         // Return the newly created profile with empty stats
         const stats = {

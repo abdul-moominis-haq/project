@@ -65,7 +65,11 @@ export default function ProfilePage() {
         farm_size: profile.farm_size || '',
         experience_years: profile.experience_years || '',
         bio: profile.bio || '',
-        specialization: profile.specialization || ''
+        specialization: profile.specialization || '',
+        preferences: profile.preferences || {
+          notifications: {},
+          privacy: {}
+        }
       });
     }
   }, [isEditing, profile]);
@@ -75,6 +79,11 @@ export default function ProfilePage() {
   };
 
   const handleSaveProfile = async () => {
+    if (!editedUser) {
+      console.error('No edited user data available');
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -122,13 +131,15 @@ export default function ProfilePage() {
   };
 
   const handlePreferenceChange = (category: string, key: string, value: any) => {
+    if (!editedUser) return;
+    
     if (category === 'notifications') {
       setEditedUser({
         ...editedUser,
         preferences: {
           ...editedUser.preferences,
           notifications: {
-            ...editedUser.preferences.notifications,
+            ...editedUser.preferences?.notifications,
             [key]: value
           }
         }
@@ -139,7 +150,7 @@ export default function ProfilePage() {
         preferences: {
           ...editedUser.preferences,
           privacy: {
-            ...editedUser.preferences.privacy,
+            ...editedUser.preferences?.privacy,
             [key]: value
           }
         }
@@ -388,7 +399,7 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="name"
-                        value={editedUser.name || ''}
+                        value={editedUser?.name || ''}
                         onChange={(e) => setEditedUser({...editedUser, name: e.target.value})}
                       />
                     ) : (
@@ -401,7 +412,7 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="location"
-                        value={editedUser.location || ''}
+                        value={editedUser?.location || ''}
                         onChange={(e) => setEditedUser({...editedUser, location: e.target.value})}
                       />
                     ) : (
@@ -420,7 +431,7 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="phone"
-                        value={editedUser.phone || ''}
+                        value={editedUser?.phone || ''}
                         onChange={(e) => setEditedUser({...editedUser, phone: e.target.value})}
                       />
                     ) : (
@@ -433,7 +444,7 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="farmName"
-                        value={editedUser.farm_name || ''}
+                        value={editedUser?.farm_name || ''}
                         onChange={(e) => setEditedUser({...editedUser, farm_name: e.target.value})}
                       />
                     ) : (
@@ -448,7 +459,7 @@ export default function ProfilePage() {
                         id="farmSize"
                         type="number"
                         step="0.1"
-                        value={editedUser.farm_size || ''}
+                        value={editedUser?.farm_size || ''}
                         onChange={(e) => setEditedUser({...editedUser, farm_size: e.target.value})}
                       />
                     ) : (
@@ -462,7 +473,7 @@ export default function ProfilePage() {
                       <Input
                         id="experience"
                         type="number"
-                        value={editedUser.experience_years || ''}
+                        value={editedUser?.experience_years || ''}
                         onChange={(e) => setEditedUser({...editedUser, experience_years: e.target.value})}
                       />
                     ) : (
@@ -475,7 +486,7 @@ export default function ProfilePage() {
                   <Label htmlFor="specialization">Specialization</Label>
                   {isEditing ? (
                     <Select 
-                      value={editedUser.specialization || ''} 
+                      value={editedUser?.specialization || ''} 
                       onValueChange={(value) => setEditedUser({...editedUser, specialization: value})}
                     >
                       <SelectTrigger>
@@ -501,7 +512,7 @@ export default function ProfilePage() {
                     <Textarea
                       id="bio"
                       rows={4}
-                      value={editedUser.bio}
+                      value={editedUser?.bio || ''}
                       onChange={(e) => setEditedUser({...editedUser, bio: e.target.value})}
                       placeholder="Tell us about yourself and your farming journey..."
                     />

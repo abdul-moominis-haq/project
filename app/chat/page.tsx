@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,17 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Send, Sprout, Cloud, Calendar, HelpCircle, Bug, Droplets, DollarSign, Leaf, MessageSquare, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Component to handle timestamp rendering safely
+function TimeStamp({ timestamp }: { timestamp: Date }) {
+  const [timeString, setTimeString] = useState('');
+  
+  useEffect(() => {
+    setTimeString(timestamp.toLocaleTimeString());
+  }, [timestamp]);
+  
+  return <span>{timeString}</span>;
+}
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -292,7 +304,7 @@ What would you like to know about today?`,
                       >
                         <p className="whitespace-pre-wrap">{message.content}</p>
                         <p className="text-xs opacity-70 mt-2">
-                          {message.timestamp.toLocaleTimeString()}
+                          <TimeStamp timestamp={message.timestamp} />
                         </p>
                       </div>
                     </div>
