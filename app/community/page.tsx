@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { localStorageService } from '@/services/local-storage';
 // Import API services (commented out for now)
 // import { communityAPI } from '@/services/api';
 // import { useApiCall } from '@/hooks/useApiCall';
@@ -31,6 +33,7 @@ import { dummyCommunityPosts } from '@/lib/dummy-data';
 import { CommunityPost, Reply } from '@/types';
 
 export default function CommunityPage() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>(dummyCommunityPosts);
   const [searchQuery, setSearchQuery] = useState('');
   const [newPost, setNewPost] = useState('');
@@ -41,6 +44,13 @@ export default function CommunityPage() {
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
   const [sortBy, setSortBy] = useState('latest');
   const [filterBy, setFilterBy] = useState('all');
+
+  // Track navigation to community page
+  useEffect(() => {
+    if (user?.id) {
+      localStorageService.recordNavigation(user.id, 'community');
+    }
+  }, [user]);
 
   // Enhanced filtering and search
   const filteredPosts = posts.filter(post => {

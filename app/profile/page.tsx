@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
 import { useAuth } from '@/contexts/AuthContext';
+import { localStorageService } from '@/services/local-storage';
 import { 
   User, 
   Mail, 
@@ -53,6 +54,13 @@ export default function ProfilePage() {
 
   // Set user data from profile context
   const user = profile;
+
+  // Track navigation to profile page
+  useEffect(() => {
+    if (authUser?.id) {
+      localStorageService.recordNavigation(authUser.id, 'profile');
+    }
+  }, [authUser]);
 
   // Initialize edit form when editing starts
   useEffect(() => {
@@ -107,6 +115,20 @@ export default function ProfilePage() {
       });
 
       if (response.ok) {
+        const updatedProfile = await response.json();
+        
+        // Save to local storage
+        if (authUser?.id) {
+          localStorageService.saveProfile(authUser.id, updatedProfile.profile);
+          localStorageService.recordActivity(authUser.id, {
+            type: 'profile_update',
+            data: {
+              action: 'updated profile information',
+              fields: Object.keys(editedUser)
+            }
+          });
+        }
+        
         // Refresh profile data from AuthContext
         await refreshProfile();
         setIsEditing(false);

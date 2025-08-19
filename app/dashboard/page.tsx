@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { WeatherCard } from '@/components/dashboard/WeatherCard';
 import { CropCard } from '@/components/dashboard/CropCard';
@@ -9,6 +9,8 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { localStorageService } from '@/services/local-storage';
 import { 
   Sprout, 
   Activity, 
@@ -27,7 +29,15 @@ import {
 import { Crop, Advisory } from '@/types';
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
+
+  // Track navigation to dashboard
+  useEffect(() => {
+    if (user?.id) {
+      localStorageService.recordNavigation(user.id, 'dashboard');
+    }
+  }, [user]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const activeCrops = dummyCrops.length;

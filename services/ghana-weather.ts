@@ -36,8 +36,8 @@ export interface GhanaRegionWeather {
 }
 
 class GhanaWeatherService {
-  private readonly API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
-  private readonly BASE_URL = 'https://api.openweathermap.org/data/2.5';
+  // Using Open-Meteo API which doesn't require API key
+  private readonly OPEN_METEO_URL = 'https://api.open-meteo.com/v1';
 
   // Ghana's agricultural regions and their characteristics
   private readonly ghanaRegions: GhanaRegionWeather = {
@@ -125,13 +125,9 @@ class GhanaWeatherService {
 
   async getCurrentWeather(lat: number, lon: number): Promise<GhanaWeatherData | null> {
     try {
-      if (!this.API_KEY) {
-        console.error('OpenWeather API key not found');
-        return this.getMockWeatherData('Unknown Location', 'Greater Accra');
-      }
-
+      // Use Open-Meteo API which doesn't require API key
       const response = await fetch(
-        `${this.BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${this.API_KEY}&units=metric`
+        `${this.OPEN_METEO_URL}/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&timezone=Africa/Accra`
       );
 
       if (!response.ok) {
@@ -143,7 +139,7 @@ class GhanaWeatherService {
       // Determine Ghana region based on coordinates
       const region = this.getGhanaRegionFromCoords(lat, lon);
       
-      return this.formatWeatherData(data, region);
+      return this.formatOpenMeteoData(data, region, lat, lon);
     } catch (error) {
       console.error('Error fetching weather data:', error);
       // Return mock data for Ghana as fallback
@@ -153,32 +149,100 @@ class GhanaWeatherService {
 
   async getWeatherByCity(city: string): Promise<GhanaWeatherData | null> {
     try {
-      if (!this.API_KEY) {
-        console.error('OpenWeather API key not found');
+      // For city-based requests, use default Ghana coordinates or return mock data
+      // Open-Meteo works better with coordinates than city names
+      const ghanaCoords = this.getGhanaCityCoordinates(city);
+      
+      if (ghanaCoords) {
+        return this.getCurrentWeather(ghanaCoords.lat, ghanaCoords.lon);
+      } else {
+        // Return mock data for unknown cities
+        console.log(`Unknown Ghana city: ${city}, returning mock data`);
         return this.getMockWeatherData(city, 'Greater Accra');
       }
-
-      // Ensure we search within Ghana
-      const ghanaCity = city.includes('Ghana') ? city : `${city}, Ghana`;
-      
-      const response = await fetch(
-        `${this.BASE_URL}/weather?q=${encodeURIComponent(ghanaCity)}&appid=${this.API_KEY}&units=metric`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Weather API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      // Determine Ghana region
-      const region = this.getGhanaRegionFromCoords(data.coord.lat, data.coord.lon);
-      
-      return this.formatWeatherData(data, region);
     } catch (error) {
       console.error('Error fetching weather data:', error);
       return this.getMockWeatherData(city, 'Greater Accra');
     }
+  }
+
+  private getGhanaCityCoordinates(city: string): { lat: number; lon: number } | null {
+    // Common Ghana cities and their coordinates
+    const ghanaCities: { [key: string]: { lat: number; lon: number } } = {
+      'accra': { lat: 5.6037, lon: -0.1870 },
+      'kumasi': { lat: 6.6885, lon: -1.6244 },
+      'tamale': { lat: 9.4034, lon: -0.8424 },
+      'takoradi': { lat: 4.8845, lon: -1.7554 },
+      'cape coast': { lat: 5.1313, lon: -1.2464 },
+      'ho': { lat: 6.6112, lon: 0.4712 },
+      'koforidua': { lat: 6.0940, lon: -0.2640 },
+      'sunyani': { lat: 7.3386, lon: -2.3266 },
+      'wa': { lat: 10.0608, lon: -2.5009 },
+      'bolgatanga': { lat: 10.7856, lon: -0.8506 }
+    };
+    
+    const normalizedCity = city.toLowerCase().trim();
+    return ghanaCities[normalizedCity] || null;
+  }
+
+  private formatOpenMeteoData(data: any, region: string, lat: number, lon: number): GhanaWeatherData {
+    const currentWeather = data.current_weather;
+    const hourlyData = data.hourly;
+    
+    // Calculate averages from hourly data for better accuracy
+    const temperature = currentWeather.temperature;
+    const humidity = hourlyData.relative_humidity_2m ? 
+      hourlyData.relative_humidity_2m.slice(0, 24).reduce((a: number, b: number) => a + b, 0) / 24 : 65;
+    const rainfall = hourlyData.precipitation ? 
+      hourlyData.precipitation.slice(0, 24).reduce((a: number, b: number) => a + b, 0) : 0;
+    const windSpeed = currentWeather.windspeed;
+    
+    const regionData = this.ghanaRegions[region] || this.ghanaRegions['Greater Accra'];
+    
+    // Create mock data structure that matches what existing methods expect
+    const mockApiData = {
+      main: {
+        temp: temperature,
+        humidity: humidity
+      },
+      weather: [{
+        main: rainfall > 2 ? 'Rain' : (temperature > 30 ? 'Clear' : 'Clouds'),
+        description: rainfall > 2 ? 'light rain' : (temperature > 30 ? 'clear sky' : 'few clouds')
+      }],
+      wind: {
+        speed: windSpeed
+      }
+    };
+
+    // Determine if it's rainy season (April to September)
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const isRainySeason = currentMonth >= 4 && currentMonth <= 9;
+    
+    return {
+      location: `${region}, Ghana`,
+      region: region,
+      temperature: Math.round(temperature),
+      humidity: Math.round(humidity),
+      rainfall: Math.round(rainfall * 10) / 10, // Round to 1 decimal
+      windSpeed: Math.round(windSpeed * 10) / 10,
+      description: mockApiData.weather[0].description,
+      forecast: this.generateForecastFromData(region, temperature, rainfall, isRainySeason),
+      farmingAdvice: this.getFarmingAdvice(mockApiData, region, isRainySeason),
+      cropRecommendations: regionData.mainCrops,
+      alerts: this.getWeatherAlerts(mockApiData, region, isRainySeason)
+    };
+  }
+
+  private generateForecastFromData(region: string, temperature: number, rainfall: number, isRainySeason: boolean): any {
+    const regionInfo = this.ghanaRegions[region] || this.ghanaRegions['Greater Accra'];
+    
+    return {
+      today: `${Math.round(temperature)}°C, ${rainfall > 1 ? 'Rainy' : 'Clear'}. Good for ${regionInfo.mainCrops[0]} farming.`,
+      tomorrow: `Expected ${Math.round(temperature + (Math.random() - 0.5) * 4)}°C. ${isRainySeason ? 'Possible showers.' : 'Generally dry.'}`,
+      weekly: isRainySeason 
+        ? `Rainy season continues. Regular rainfall expected, ideal for ${regionInfo.mainCrops.slice(0, 2).join(' and ')}.`
+        : `Dry conditions expected. Focus on irrigation for ${regionInfo.mainCrops[0]} crops.`
+    };
   }
 
   private getGhanaRegionFromCoords(lat: number, lon: number): string {

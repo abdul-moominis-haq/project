@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { createClient } from '@/utils/supabase/client';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { localStorageService } from '@/services/local-storage';
 
 interface AuthContextType {
   user: User | null;
@@ -28,10 +29,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to fetch profile data from database
   const fetchProfile = async (userId: string) => {
     try {
+      // Initialize local storage for user
+      localStorageService.initializeUser(userId);
+      
+      // Try to get cached profile first
+      const cachedProfile = localStorageService.getProfile(userId);
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+      }
+
       const response = await fetch('/api/profile');
       if (response.ok) {
         const data = await response.json();
         setProfile(data.profile);
+        
+        // Save profile to local storage
+        localStorageService.saveProfile(userId, data.profile);
+        
         return data.profile;
       } else if (response.status === 404) {
         // Profile doesn't exist - this should now be handled by the API
@@ -39,14 +53,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         return null;
       } else {
-        // Other error
+        // Other error - use cached profile if available
         const errorData = await response.json();
         console.error('Profile fetch error:', errorData);
+        
+        if (cachedProfile) {
+          console.log('Using cached profile due to API error');
+          return cachedProfile;
+        }
+        
         setProfile(null);
         return null;
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      
+      // Fallback to cached profile
+      const cachedProfile = localStorageService.getProfile(userId);
+      if (cachedProfile) {
+        console.log('Using cached profile due to network error');
+        setProfile(cachedProfile);
+        return cachedProfile;
+      }
+      
       setProfile(null);
       return null;
     }

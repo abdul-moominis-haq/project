@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { localStorageService } from '@/services/local-storage';
 // Import API services (commented out for now)
 // import { cropsAPI, sensorsAPI, advisoryAPI } from '@/services/api';
 import { 
@@ -38,6 +40,7 @@ import { dummyCrops, dummyIoTSensors } from '@/lib/dummy-data';
 import { Crop, IoTSensor } from '@/types';
 
 export default function CropsPage() {
+  const { user } = useAuth();
   const [crops, setCrops] = useState<Crop[]>(dummyCrops);
   const [sensors, setSensors] = useState<IoTSensor[]>(dummyIoTSensors);
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,6 +53,13 @@ export default function CropsPage() {
   ]);
   const [loading, setLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{type: 'success' | 'error', message: string} | null>(null);
+
+  // Track navigation to crops page
+  useEffect(() => {
+    if (user?.id) {
+      localStorageService.recordNavigation(user.id, 'crops');
+    }
+  }, [user]);
 
   // Load data on component mount
   useEffect(() => {
@@ -151,6 +161,21 @@ export default function CropsPage() {
         progress: 15
       };
       setCrops([...crops, crop]);
+
+      // Save crop to local storage and record activity
+      if (user?.id) {
+        localStorageService.saveCrop(user.id, crop);
+        localStorageService.recordActivity(user.id, {
+          type: 'crop_add',
+          data: {
+            cropName: crop.name,
+            cropType: crop.type,
+            variety: crop.variety,
+            area: crop.area,
+            location: crop.location
+          }
+        });
+      }
 
       // Reset form
       setNewCrop({

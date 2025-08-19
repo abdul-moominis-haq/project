@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import ghanaWeatherService, { GhanaWeatherData } from '@/services/ghana-weather';
 import ghanaLocationService from '@/services/ghana-location';
 import { useAuth } from '@/contexts/AuthContext';
+import { localStorageService } from '@/services/local-storage';
 import { 
   Cloud, 
   MapPin, 
@@ -97,7 +98,7 @@ const ghanaCrops = [
 ];
 
 export default function WeatherPage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [selectedLocation, setSelectedLocation] = useState('accra');
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number, name: string} | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
@@ -109,6 +110,13 @@ export default function WeatherPage() {
   const [historicalData, setHistoricalData] = useState(ghanaHistoricalWeatherData);
   const [forecastData, setForecastData] = useState<any[]>([]);
   const [loadingWeather, setLoadingWeather] = useState(false);
+
+  // Track navigation to weather page
+  useEffect(() => {
+    if (user?.id) {
+      localStorageService.recordNavigation(user.id, 'weather');
+    }
+  }, [user]);
 
   // Ghana locations
   const ghanaLocations = [
@@ -158,20 +166,22 @@ export default function WeatherPage() {
   const loadWeatherData = async () => {
     setLoadingWeather(true);
     try {
-      let lat, lng;
+      let lat, lng, locationName;
       
       if (userLocation) {
         lat = userLocation.latitude;
         lng = userLocation.longitude;
+        locationName = userLocation.name;
       } else {
         const location = getLocationCoordinates(selectedLocation);
         lat = location.lat;
         lng = location.lng;
+        locationName = location.name;
       }
 
       const weather = await ghanaWeatherService.getCurrentWeather(lat, lng);
       if (weather) {
-        setWeatherData({
+        const weatherResult = {
           temperature: weather.temperature,
           condition: weather.description || 'Partly Cloudy',
           humidity: weather.humidity,
@@ -179,7 +189,22 @@ export default function WeatherPage() {
           icon: weather.description?.includes('rain') ? '🌧️' : 
                 weather.description?.includes('cloud') ? '⛅' : 
                 weather.description?.includes('sun') ? '☀️' : '🌤️'
-        });
+        };
+        
+        setWeatherData(weatherResult);
+        
+        // Track weather check activity
+        if (user?.id) {
+          localStorageService.recordActivity(user.id, {
+            type: 'weather_check',
+            data: {
+              location: locationName,
+              temperature: weather.temperature,
+              condition: weather.description,
+              timestamp: new Date().toISOString()
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading weather data:', error);
