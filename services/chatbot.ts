@@ -18,22 +18,64 @@ export interface ChatMessage {
 }
 
 export class SmartAgriChatbot {
-  private systemPrompt = `You are an expert agricultural assistant for SmartAgri, a modern farming application. Your role is to help farmers with:
+  private systemPrompt = `You are an expert agricultural assistant for SmartAgri, specializing in African farming practices with deep expertise in Ghanaian agriculture. Your role is to help African farmers, particularly those in Ghana, with:
 
-1. Crop management and planning
-2. Weather-related farming advice
-3. Pest and disease identification and treatment
-4. Soil health and fertilization guidance
-5. Irrigation and water management
-6. Seasonal farming tips
-7. Market insights and crop pricing
-8. Sustainable farming practices
-9. Technology adoption in agriculture
-10. General agricultural best practices
+**FOCUS AREA: AFRICAN FARMING - GHANA SPECIALIZATION**
 
-Always provide practical, actionable advice. Consider factors like climate, season, soil type, and regional farming practices. Be encouraging and supportive while being scientifically accurate. If you need more specific information about the user's location, crops, or farming conditions, ask relevant questions.
+1. **Ghanaian Crop Management**:
+   - Major crops: Maize (corn), cassava, yam, cocoa, rice, plantain, tomatoes, onions, pepper
+   - Traditional varieties vs. improved varieties (e.g., Obatanpa maize, Jasmine 85 rice)
+   - Seasonal planting schedules for Ghana's major and minor seasons
+   - Intercropping systems common in Ghana (maize-cassava, yam-maize-pepper)
 
-Keep responses concise but comprehensive, and always prioritize farmer safety and environmental sustainability.`;
+2. **Ghana's Climate & Weather**:
+   - Two rainy seasons: Major season (March-July) and Minor season (September-November)
+   - Harmattan wind effects on crops (December-February)
+   - Regional variations: Forest zone, Middle belt, Northern savanna
+   - Climate-smart agriculture for Ghana's changing weather patterns
+
+3. **African Soil & Fertilization**:
+   - Ghana's soil types: Forest oxisols, savanna alfisols, coastal sandy soils
+   - Organic matter management in tropical conditions
+   - Local fertilizers and compost (poultry manure, palm kernel waste, rice husks)
+   - Soil conservation on Ghana's slopes and erosion-prone areas
+
+4. **Ghana-Specific Pests & Diseases**:
+   - Fall armyworm in maize and rice
+   - Cassava mosaic disease and cassava brown streak
+   - Cocoa swollen shoot virus and black pod disease
+   - Tomato leaf miner and bacterial wilt
+   - Traditional and modern control methods used in Ghana
+
+5. **Water Management for Ghana**:
+   - Rainfed vs. irrigated farming systems
+   - Small-scale irrigation (drip systems, small dams)
+   - Water harvesting during rainy seasons
+   - Drought management strategies for northern Ghana
+
+6. **Ghanaian Market & Economics**:
+   - Local market prices and seasonal variations
+   - Export crops: Cocoa, cashew, shea nuts, pineapple
+   - Value addition opportunities (gari processing, palm oil extraction)
+   - Farmer cooperatives and group farming in Ghana
+
+7. **Traditional & Modern Practices**:
+   - Indigenous knowledge integration
+   - Modern technology adoption suitable for small-scale farmers
+   - Mobile technology for farmers (AgriTech solutions in Ghana)
+   - Sustainable practices fitting Ghana's environment
+
+**RESPONSE GUIDELINES**:
+- Always consider Ghana's three ecological zones (Forest, Middle Belt, Northern Savanna)
+- Reference local varieties and farming practices familiar to Ghanaian farmers
+- Use measurements familiar in Ghana (acres, bags, cedis when relevant)
+- Consider small-scale farmer context (0.5-5 acres typical farm size)
+- Mention seasonal timing relevant to Ghana's calendar
+- Include both traditional wisdom and modern techniques
+- Be mindful of economic constraints of small-scale farmers
+- Reference local institutions (Ministry of Food and Agriculture, agricultural extension services)
+
+If asked about farming outside Africa, politely redirect to African/Ghanaian context. Always prioritize farmer safety, environmental sustainability, and economic viability for Ghanaian conditions.`;
 
   async sendMessage(
     messages: ChatMessage[],
@@ -122,41 +164,41 @@ Keep responses concise but comprehensive, and always prioritize farmer safety an
   private getFallbackResponse(messages: ChatMessage[]): string {
     const lastMessage = messages[messages.length - 1]?.content.toLowerCase() || '';
     
-    // Simple keyword-based responses for common farming topics
+    // Ghana-focused keyword-based responses for common farming topics
     if (lastMessage.includes('crop') || lastMessage.includes('plant')) {
-      return "🌱 For crop management, consider these key factors: proper soil preparation, appropriate spacing, regular watering, and pest monitoring. What specific crop are you growing? I can provide more targeted advice.";
+      return "🌱 For crops in Ghana, consider these key factors: proper soil preparation during the dry season, appropriate spacing for local varieties, timing with the rainy seasons (major: April-July, minor: September-November), and monitoring for common pests like fall armyworm. What specific crop are you growing? Maize, cassava, yam, or cocoa?";
     }
     
     if (lastMessage.includes('pest') || lastMessage.includes('insect') || lastMessage.includes('bug')) {
-      return "🐛 Pest management is crucial for healthy crops. Use integrated pest management (IPM): regular monitoring, beneficial insects, crop rotation, and organic pesticides when necessary. Can you describe the pest issue you're facing?";
+      return "🐛 Common pests in Ghana include fall armyworm (for maize), cassava mosaic virus vectors, and cocoa mirids. Use integrated pest management: regular field monitoring, encourage natural predators, practice crop rotation, and apply neem-based pesticides when necessary. Which crop is affected by pests?";
     }
     
     if (lastMessage.includes('soil') || lastMessage.includes('fertilizer')) {
-      return "🌍 Soil health is the foundation of successful farming. Test your soil pH (6.0-7.0 is ideal for most crops), ensure good drainage, add organic matter like compost, and use balanced fertilizers. What type of soil challenges are you experiencing?";
+      return "🌍 Ghana's soils vary by region - forest oxisols in the south, savanna alfisols in the north. Test soil pH (most crops prefer 6.0-7.0), improve with organic matter like compost or poultry manure, and use NPK fertilizers suited to your region. What region of Ghana are you farming in?";
     }
     
     if (lastMessage.includes('water') || lastMessage.includes('irrigation')) {
-      return "💧 Proper irrigation is key to crop success. Water deeply but less frequently, check soil moisture regularly, use mulch to retain moisture, and consider drip irrigation for efficiency. What's your current watering situation?";
+      return "💧 In Ghana, plan irrigation around the two rainy seasons. Use water harvesting during rains, practice mulching to retain moisture during dry periods, and consider small-scale irrigation for dry season farming. Are you in the northern drier regions or southern forest zone?";
     }
     
     if (lastMessage.includes('weather') || lastMessage.includes('rain') || lastMessage.includes('drought')) {
-      return "🌦️ Weather planning is essential for farming. Monitor forecasts regularly, prepare for seasonal changes, have drought mitigation plans, and protect crops from extreme weather. What weather challenges are you facing?";
+      return "🌦️ Ghana has distinct seasons: major rains (April-July), minor rains (September-November), and dry harmattan (December-March). Plan planting with rainfall patterns, prepare for occasional droughts, and protect crops during heavy rains. Which season are you preparing for?";
     }
     
     if (lastMessage.includes('harvest') || lastMessage.includes('when to')) {
-      return "🌾 Harvest timing depends on your crop type and local conditions. Look for visual cues like color changes, check fruit firmness, monitor sugar content for fruits, and harvest in optimal weather conditions. What crop are you planning to harvest?";
+      return "🌾 In Ghana, harvest timing varies by crop and season: maize (3-4 months after planting), cassava (8-18 months), yam (8-10 months), cocoa (twice yearly). Watch for crop-specific maturity signs and harvest before heavy rains. Which crop are you planning to harvest?";
     }
     
     if (lastMessage.includes('organic') || lastMessage.includes('sustainable')) {
-      return "🌿 Organic farming focuses on natural methods: composting, crop rotation, beneficial insects, cover crops, and avoiding synthetic chemicals. It builds long-term soil health and ecosystem balance. What organic practices interest you most?";
+      return "🌿 Sustainable farming in Ghana includes: composting with crop residues, integrating livestock with crops, using local varieties adapted to conditions, practicing agroforestry, and maintaining soil fertility with legumes. What sustainable practices interest you most?";
     }
     
     if (lastMessage.includes('hello') || lastMessage.includes('hi') || lastMessage.includes('help')) {
-      return "👋 Hello! I'm your SmartAgri agricultural assistant. I'm here to help with farming questions about crops, soil, pests, irrigation, weather planning, and more. Note: I'm currently running in offline mode with basic responses. What farming topic would you like to discuss?";
+      return "👋 Akwaaba! I'm your SmartAgri assistant, specialized in Ghana's agricultural practices. I help with crops like maize, cassava, yam, cocoa, seasonal planning, soil management, and pest control specific to Ghana's climate. Note: I'm currently in offline mode with basic responses. What farming challenge can I help you with?";
     }
     
     // Default response
-    return "🌱 I'm here to help with your farming questions! While I'm currently running in offline mode with limited responses, I can still provide basic guidance on crops, soil, irrigation, pest management, and weather planning. Could you be more specific about what farming challenge you're facing?";
+    return "🌱 I'm here to help with your Ghanaian farming questions! While I'm currently in offline mode with limited responses, I can provide guidance on crops (maize, cassava, yam, cocoa), Ghana's seasonal patterns, soil management, and pest control. Could you be more specific about your farming challenge?";
   }
 
   async getQuickAdvice(query: string): Promise<string> {

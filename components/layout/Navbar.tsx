@@ -77,14 +77,14 @@ export function Navbar() {
                     {user?.name?.charAt(0)?.toUpperCase() || profile?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </div>
-                <div className="hidden lg:block">
+                {/* <div className="hidden lg:block">
                   <p className="text-sm font-medium text-gray-900">
                     {user?.name || profile?.name || 'User'}
                   </p>
                   <p className="text-xs text-gray-500">
                     {user?.location || profile?.location || 'Location not set'}
                   </p>
-                </div>
+                </div> */}
               </Link>
             </div>
             
