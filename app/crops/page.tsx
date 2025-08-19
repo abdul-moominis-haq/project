@@ -383,7 +383,7 @@ export default function CropsPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Alert Messages */}
         {alertMessage && (
           <Alert className={`${alertMessage.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
@@ -393,15 +393,15 @@ export default function CropsPage() {
           </Alert>
         )}
         
-        {/* Header */}
-        <div className="space-y-4">
+        {/* Header - Responsive */}
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Crops & IoT Management</h1>
-            <p className="text-gray-600 mt-1">Manage your crops, monitor IoT sensors, and get AI recommendations</p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Crops & IoT Management</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage your crops, monitor IoT sensors, and get AI recommendations</p>
           </div>
           
-          {/* Search Bar */}
-          <div className="max-w-md">
+          {/* Search Bar - Responsive */}
+          <div className="w-full sm:max-w-md">
             <SearchBar 
               placeholder="Search crops, sensors, or ask AI..."
               value={searchQuery}
@@ -411,70 +411,73 @@ export default function CropsPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="crops" className="space-y-6">
+        <Tabs defaultValue="crops" className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="crops" className="flex items-center space-x-2">
-              <Sprout className="w-4 h-4" />
-              <span>Crops Management</span>
+            <TabsTrigger value="crops" className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              <Sprout className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Crops Management</span>
+              <span className="xs:hidden">Crops</span>
             </TabsTrigger>
-            <TabsTrigger value="iot" className="flex items-center space-x-2">
-              <Wifi className="w-4 h-4" />
-              <span>IoT Sensors</span>
+            <TabsTrigger value="iot" className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              <Wifi className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">IoT Sensors</span>
+              <span className="xs:hidden">IoT</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center space-x-2">
-              <Bot className="w-4 h-4" />
-              <span>AI Recommendations</span>
+            <TabsTrigger value="ai" className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              <Bot className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">AI Recommendations</span>
+              <span className="xs:hidden">AI</span>
             </TabsTrigger>
           </TabsList>
 
           {/* CROPS MANAGEMENT TAB */}
-          <TabsContent value="crops" className="space-y-6">
-            {/* Crops Overview Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <TabsContent value="crops" className="space-y-4 sm:space-y-6">
+            {/* Crops Overview Stats - Responsive Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center space-x-2">
-                    <Sprout className="w-5 h-5 text-green-600" />
+                    <Sprout className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                     <div>
-                      <p className="text-2xl font-bold">{filteredCrops.length}</p>
-                      <p className="text-sm text-gray-600">Total Crops</p>
+                      <p className="text-lg sm:text-2xl font-bold">{filteredCrops.length}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Total Crops</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
               <Card>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center space-x-2">
-                    <Activity className="w-5 h-5 text-blue-600" />
+                    <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                     <div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-lg sm:text-2xl font-bold">
                         {crops.length > 0 ? Math.round(crops.reduce((sum, crop) => sum + crop.health, 0) / crops.length) : 0}%
                       </p>
-                      <p className="text-sm text-gray-600">Avg Health</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Avg Health</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
               <Card>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center space-x-2">
-                    <Target className="w-5 h-5 text-orange-600" />
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                     <div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-lg sm:text-2xl font-bold">
                         {crops.length > 0 ? Math.min(...crops.map(crop => getDaysToHarvest(crop.expectedHarvest))) : 0}
                       </p>
-                      <p className="text-sm text-gray-600">Days to Next Harvest</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Days to Next Harvest</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
               <Card>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                     <div>
                       <p className="text-2xl font-bold">
                         {crops.reduce((sum, crop) => sum + crop.area, 0).toFixed(1)}

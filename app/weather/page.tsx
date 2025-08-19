@@ -328,69 +328,76 @@ export default function WeatherPage() {
   return (
     <Layout>
       <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
+        {/* Header - Responsive */}
         <div className="space-y-1 sm:space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Weather & AI Farming (Ghana)</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Weather & AI Farming (Ghana)</h1>
           <p className="text-gray-600 text-sm sm:text-base">Monitor Ghana weather conditions and analyze agricultural data</p>
         </div>
 
         <Tabs defaultValue="crops" className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto">
             <TabsList className="grid w-full grid-cols-4 min-w-max">
-              <TabsTrigger value="crops" className="text-xs sm:text-sm px-2 sm:px-4">Ghana Crops</TabsTrigger>
+              <TabsTrigger value="crops" className="text-xs sm:text-sm px-2 sm:px-4">
+                <span className="hidden sm:inline">Ghana Crops</span>
+                <span className="sm:hidden">Crops</span>
+              </TabsTrigger>
               <TabsTrigger value="current" className="text-xs sm:text-sm px-2 sm:px-4">Current</TabsTrigger>
-              <TabsTrigger value="forecast" className="text-xs sm:text-sm px-2 sm:px-4">Weather & GPS</TabsTrigger>
+              <TabsTrigger value="forecast" className="text-xs sm:text-sm px-2 sm:px-4">
+                <span className="hidden sm:inline">Weather & GPS</span>
+                <span className="sm:hidden">Weather</span>
+              </TabsTrigger>
               <TabsTrigger value="analytics" className="text-xs sm:text-sm px-2 sm:px-4">Analytics</TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Ghana Crop Management Tab */}
+          {/* Ghana Crop Management Tab - Enhanced Responsive */}
           <TabsContent value="crops" className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
               {/* Ghana Crop Management */}
               <Card>
                 <CardHeader className="pb-3 sm:pb-4">
-                  <CardTitle className="flex items-center space-x-2 text-lg">
-                    <Sprout className="w-5 h-5" />
+                  <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                    <Sprout className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>Ghana Crop Management</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 sm:space-y-4">
-                  {ghanaCrops.map((crop) => (
-                    <div key={crop.id} className="bg-gray-50 rounded-lg p-3 sm:p-4">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{crop.name}</h4>
-                          <p className="text-xs sm:text-sm text-gray-600">{crop.type} - {crop.variety}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {ghanaCrops.map((crop) => (
+                      <div key={crop.id} className="bg-gray-50 rounded-lg p-3 sm:p-4 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{crop.name}</h4>
+                            <p className="text-xs sm:text-sm text-gray-600">{crop.type} - {crop.variety}</p>
+                          </div>
+                          <Badge 
+                            variant={crop.health > 80 ? 'default' : crop.health > 60 ? 'secondary' : 'destructive'}
+                            className="text-xs shrink-0 ml-2"
+                          >
+                            {crop.health}%
+                          </Badge>
                         </div>
-                        <Badge 
-                          variant={crop.health > 80 ? 'default' : crop.health > 60 ? 'secondary' : 'destructive'}
-                          className="text-xs shrink-0 ml-2"
-                        >
-                          {crop.health}%
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
-                        <div>
-                          <p className="text-gray-500">Stage</p>
-                          <p className="font-medium">{crop.stage}</p>
+                        
+                        <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
+                          <div>
+                            <p className="text-gray-500">Stage</p>
+                            <p className="font-medium">{crop.stage}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Progress</p>
+                            <p className="font-medium">{crop.progress}%</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Region</p>
+                            <p className="font-medium truncate">{crop.location}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Area</p>
+                            <p className="font-medium">{crop.area} ha</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-gray-500">Progress</p>
-                          <p className="font-medium">{crop.progress}%</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Region</p>
-                          <p className="font-medium truncate">{crop.location}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Area</p>
-                          <p className="font-medium">{crop.area} ha</p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3">
+                        
+                        <div className="mt-3">
                         <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                           <span>Growth Progress</span>
                           <span>{crop.progress}%</span>
@@ -401,9 +408,10 @@ export default function WeatherPage() {
                             style={{ width: `${crop.progress}%` }}
                           ></div>
                         </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>

@@ -99,51 +99,51 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        {/* Stats Cards - Enhanced Responsiveness */}
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           <StatsCard
             title="Active Crops"
             value={activeCrops.toString()}
-            icon={<Sprout className="w-5 h-5 text-green-600" />}
+            icon={<Sprout className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />}
             trend={{ value: 2, isUpward: true }}
           />
           <StatsCard
             title="Avg Health"
             value={`${averageHealth}%`}
-            icon={<Activity className="w-5 h-5 text-blue-600" />}
+            icon={<Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />}
             trend={{ value: 5, isUpward: true }}
           />
           <StatsCard
             title="Next Harvest"
             value={`${daysToNextHarvest} days`}
-            icon={<Calendar className="w-5 h-5 text-orange-600" />}
+            icon={<Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />}
             trend={{ value: 0, isUpward: true }}
           />
           <StatsCard
             title="Weekly Growth"
             value="12%"
-            icon={<TrendingUp className="w-5 h-5 text-purple-600" />}
+            icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />}
             trend={{ value: 2, isUpward: true }}
           />
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column */}
-          <div className="xl:col-span-2 space-y-4 sm:space-y-6">
+        {/* Main Content - Enhanced Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-3 gap-4 sm:gap-6">
+          {/* Left Column - Full width on mobile/tablet, 3 cols on large desktop */}
+          <div className="lg:col-span-3 xl:col-span-2 space-y-4 sm:space-y-6">
             {/* Weather Card */}
             <WeatherCard current={currentWeather} forecast={tomorrowForecast} />
 
             {/* Crops Overview */}
             <Card>
               <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center space-x-2 text-lg">
-                  <Sprout className="w-5 h-5" />
+                <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                  <Sprout className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Crop Overview</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 sm:gap-4">
                   {filteredCrops.map((crop) => (
                     <CropCard
                       key={crop.id}
@@ -152,7 +152,7 @@ export default function DashboardPage() {
                     />
                   ))}
                   {filteredCrops.length === 0 && searchQuery && (
-                    <div className="col-span-full text-center py-8 text-gray-500">
+                    <div className="col-span-full text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
                       No crops found matching &ldquo;{searchQuery}&rdquo;
                     </div>
                   )}
@@ -161,37 +161,37 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-4 sm:space-y-6">
+          {/* Right Column - Full width on mobile/tablet */}
+          <div className="lg:col-span-1 xl:col-span-1 space-y-4 sm:space-y-6">
             {/* Recent Advisories */}
             <Card>
               <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="text-lg">Farm Advisories</CardTitle>
+                <CardTitle className="text-base sm:text-lg">Farm Advisories</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 sm:space-y-4">
                   {filteredAdvisories.map((advisory) => (
-                    <div key={advisory.id} className="border rounded-lg p-3 sm:p-4">
+                    <div key={advisory.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-medium text-sm sm:text-base text-gray-900">{advisory.title}</h4>
-                        <Badge className={`${getPriorityColor(advisory.priority)} text-xs shrink-0 ml-2`}>
+                        <h4 className="font-medium text-sm sm:text-base text-gray-900 flex-1 mr-2">{advisory.title}</h4>
+                        <Badge className={`${getPriorityColor(advisory.priority)} text-xs shrink-0`}>
                           <span className="flex items-center space-x-1">
                             {getPriorityIcon(advisory.priority)}
-                            <span>{advisory.priority}</span>
+                            <span className="hidden sm:inline">{advisory.priority}</span>
                           </span>
                         </Badge>
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2">{advisory.content}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">{advisory.category}</span>
-                        <span className="text-xs text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-3">{advisory.content}</p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span className="truncate mr-2">{advisory.category}</span>
+                        <span className="whitespace-nowrap">
                           {new Date(advisory.date).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
                   ))}
                   {filteredAdvisories.length === 0 && searchQuery && (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
                       No advisories found matching &ldquo;{searchQuery}&rdquo;
                     </div>
                   )}
