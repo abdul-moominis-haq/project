@@ -60,26 +60,26 @@ export default function ChatPage() {
         setMessages(formattedMessages);
       } else {
         // Set welcome message if no saved history
-        const welcomeMessage = {
-          role: 'assistant' as const,
-          content: `# Welcome to SmartAgri Assistant! 🌱
+    const welcomeMessage = {
+  role: 'assistant' as const,
+  content: `# Welcome to SmartAgri Assistant
 
-Hello ${user?.name || 'there'}! I'm your personal AI farming companion, powered by advanced agricultural knowledge and real-time data.
+Hello ${user?.name || 'there'}! I'm your personal AI farming companion, built to support you with practical agricultural knowledge and real-time data.
 
 ## How I can help you today:
 
-- **🌾 Crop Management**: Get advice on planting, growing, and harvesting
-- **🌦️ Weather Insights**: Weather-based farming recommendations
-- **🐛 Pest & Disease Control**: Identify and treat crop issues
-- **💧 Irrigation Planning**: Water management strategies
-- **📈 Market Intelligence**: Crop pricing and demand trends
-- **🌱 Soil Health**: Testing and improvement guidance
+- Crop Management: Guidance on planting, growing, and harvesting  
+- Weather Insights: Recommendations based on local conditions  
+- Pest & Disease Control: Help identifying and managing crop issues  
+- Irrigation Planning: Strategies for effective water use  
+- Market Intelligence: Updates on crop prices and demand trends  
+- Soil Health: Testing methods and improvement tips  
 
-**Just ask me anything!** I'm here to help you grow better crops and increase your farm's productivity. Try asking about your specific crops, location, or farming challenges.
+Ask me anything related to your crops, location, or farming challenges. I’m here to help you make better decisions and improve productivity on your farm.  
 
 What would you like to explore first?`,
-          timestamp: new Date()
-        };
+  timestamp: new Date()
+};
         setMessages([welcomeMessage]);
         localStorageService.saveChatMessage(user.id, welcomeMessage);
       }
