@@ -14,10 +14,22 @@ import {
   Leaf,
   Menu,
   X,
-  MessageSquare
+  MessageSquare,
+  User,
+  Edit,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -29,9 +41,10 @@ const navigation = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { user, profile, logout, refreshProfile } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -44,6 +57,30 @@ export function Navbar() {
       setIsLoggingOut(false);
     }
   };
+
+  const handleRefreshProfile = async () => {
+    try {
+      setIsRefreshing(true);
+      await refreshProfile();
+    } catch (error) {
+      console.error('Profile refresh error:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    const nameParts = name.split(' ');
+    if (nameParts.length >= 2) {
+      return `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`.toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
+  };
+
+  const displayName = profile?.name || user?.name || 'User';
+  const displayEmail = profile?.email || user?.email || '';
+  const displayLocation = profile?.location || user?.location || 'Location not set';
 
   // Prevent body scroll when mobile menu is open
   React.useEffect(() => {
@@ -135,24 +172,91 @@ export function Navbar() {
             </div>
 
             {/* Right side - Desktop & Tablet */}
-            <div className="hidden md:flex items-center">
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                size="sm"
-                className="text-red-700 hover:bg-red-50 text-xs lg:text-sm px-2 lg:px-3"
-                disabled={isLoggingOut}
-              >
-                <LogOut className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" />
-                <span className="hidden lg:block">{isLoggingOut ? 'Signing out...' : 'Logout'}</span>
-              </Button>
+            <div className="hidden md:flex items-center space-x-3">
+              {/* User Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={profile?.avatar_url || ''} alt={displayName} />
+                    <AvatarFallback className="bg-green-100 text-green-800 text-sm font-medium">
+                      {getInitials(displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden lg:block text-left">
+                    <p className="text-sm font-medium text-gray-900 truncate max-w-32">
+                      {displayName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate max-w-32">
+                      {displayLocation}
+                    </p>
+                  </div>
+                </DropdownMenuTrigger>
+                
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={profile?.avatar_url || ''} alt={displayName} />
+                        <AvatarFallback className="bg-green-100 text-green-800">
+                          {getInitials(displayName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {displayName}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {displayEmail}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {displayLocation}
+                        </p>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center w-full">
+                      <User className="w-4 h-4 mr-2" />
+                      View Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center w-full">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem 
+                    onClick={handleRefreshProfile}
+                    disabled={isRefreshing}
+                    className="flex items-center w-full"
+                  >
+                    <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
+                    {isRefreshing ? 'Refreshing...' : 'Refresh Profile'}
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem 
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="flex items-center w-full text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    {isLoggingOut ? 'Signing out...' : 'Sign Out'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center">
               <Button
-                variant="ghost"
-                size="sm"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-1"
                 aria-expanded={isMobileMenuOpen}
@@ -179,6 +283,49 @@ export function Navbar() {
             >
               {/* Main Navigation Grid */}
               <div className="px-3 py-4">
+                {/* Mobile User Profile Section */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-xl border">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={profile?.avatar_url || ''} alt={displayName} />
+                      <AvatarFallback className="bg-green-100 text-green-800 text-lg font-medium">
+                        {getInitials(displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                        {displayName}
+                      </h3>
+                      <p className="text-sm text-gray-500 truncate">
+                        {displayEmail}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {displayLocation}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Profile Actions */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center p-2 text-sm font-medium text-gray-700 bg-white rounded-lg border hover:bg-gray-50 transition-colors"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit Profile
+                    </Link>
+                    <Button
+                      onClick={handleRefreshProfile}
+                      disabled={isRefreshing}
+                      className="flex items-center justify-center p-2 text-sm font-medium text-gray-700 bg-white rounded-lg border hover:bg-gray-50 transition-colors"
+                    >
+                      <RefreshCw className={cn("w-4 h-4 mr-1", isRefreshing && "animate-spin")} />
+                      {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                    </Button>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   {navigation.map((item) => {
                     const isActive = pathname === item.href;
@@ -213,9 +360,7 @@ export function Navbar() {
                       handleLogout();
                       setIsMobileMenuOpen(false);
                     }}
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-center text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
+                    className="w-full justify-center text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 bg-transparent"
                     disabled={isLoggingOut}
                   >
                     <LogOut className="w-4 h-4 mr-2" />

@@ -260,12 +260,11 @@ What would you like to explore first?`,
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 px-3 py-1">
+              <Badge className="text-green-700 border-green-300 bg-green-50 px-3 py-1">
                 <MessageSquare className="w-4 h-4 mr-2" />
                 AI Powered
               </Badge>
               <Badge 
-                variant={connectionStatus === 'online' ? 'default' : 'secondary'}
                 className={`px-3 py-1 ${connectionStatus === 'online' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'}`}
               >
                 <div className={`w-2 h-2 rounded-full mr-2 ${
@@ -300,8 +299,7 @@ What would you like to explore first?`,
                 {quickActions.map((action, index) => (
                   <Button
                     key={index}
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-200 group border-gray-200"
+                    className="w-full justify-start h-auto p-4 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-200 group border border-gray-200 bg-white"
                     onClick={() => handleQuickAction(action)}
                   >
                     <div className="flex items-start gap-3 w-full">

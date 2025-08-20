@@ -261,12 +261,11 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 px-2 sm:px-3 py-1">
+              <Badge className="text-green-700 border-green-300 bg-green-50 px-2 sm:px-3 py-1">
                 <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                 <span className="text-xs sm:text-sm">AI Powered</span>
               </Badge>
               <Badge 
-                variant={connectionStatus === 'online' ? 'default' : 'secondary'}
                 className={`px-2 sm:px-3 py-1 text-xs sm:text-sm ${connectionStatus === 'online' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'}`}
               >
                 <div className={`w-2 h-2 rounded-full mr-1 sm:mr-2 ${
@@ -301,8 +300,7 @@ export default function ChatPage() {
                     {quickActions.map((action, index) => (
                       <Button
                         key={index}
-                        variant="outline"
-                        className="w-full justify-start h-auto p-2 sm:p-3 lg:p-4 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-200 group border-gray-200"
+                        className="w-full justify-start h-auto p-2 sm:p-3 lg:p-4 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-200 group border border-gray-200 bg-white"
                         onClick={() => handleQuickAction(action)}
                       >
                         <div className="flex items-start gap-2 sm:gap-3 w-full">
@@ -457,7 +455,6 @@ export default function ChatPage() {
                     <Button
                       type="submit"
                       disabled={isLoading || !input.trim()}
-                      size="sm"
                       className="rounded-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200 px-3 sm:px-4"
                     >
                       <Send className="w-4 h-4" />

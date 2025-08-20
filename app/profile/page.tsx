@@ -279,9 +279,7 @@ export default function ProfilePage() {
                     </Avatar>
                     {isEditing && (
                       <Button
-                        size="sm"
-                        className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0"
-                        variant="outline"
+                        className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0 border border-gray-300 bg-white hover:bg-gray-50"
                       >
                         <Camera className="w-4 h-4" />
                       </Button>
@@ -407,7 +405,7 @@ export default function ProfilePage() {
                         <Save className="w-4 h-4 mr-2" />
                         {loading ? 'Saving...' : 'Save Changes'}
                       </Button>
-                      <Button onClick={handleCancelEdit} variant="outline" disabled={loading}>
+                      <Button onClick={handleCancelEdit} className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700" disabled={loading}>
                         Cancel
                       </Button>
                     </div>

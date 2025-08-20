@@ -159,8 +159,6 @@ export function ChatBot() {
               SmartAgri Assistant
             </CardTitle>
             <Button
-              variant="ghost"
-              size="sm"
               onClick={() => setIsOpen(false)}
               className="h-8 w-8 p-0"
             >
@@ -171,7 +169,6 @@ export function ChatBot() {
             {quickActions.map((action, index) => (
               <Badge
                 key={index}
-                variant="secondary"
                 className="cursor-pointer hover:bg-green-100 flex items-center gap-1"
                 onClick={() => handleQuickAction(action)}
               >
@@ -227,7 +224,6 @@ export function ChatBot() {
               <Button 
                 type="submit" 
                 disabled={isLoading || !input.trim()}
-                size="sm"
               >
                 <Send className="w-4 h-4" />
               </Button>

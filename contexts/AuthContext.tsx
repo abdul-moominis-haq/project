@@ -3,8 +3,26 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { createClient } from '@/utils/supabase/client';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { localStorageService } from '@/services/local-storage';
+
+// Define types locally to avoid import issues
+type SupabaseUser = {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    name?: string;
+    location?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
+
+type Session = {
+  user: SupabaseUser;
+  [key: string]: any;
+} | null;
+
+type AuthChangeEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED' | 'PASSWORD_RECOVERY';
 
 interface AuthContextType {
   user: User | null;
@@ -112,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         if (session?.user) {
           setSupabaseUser(session.user);
           const mappedUser: User = {
