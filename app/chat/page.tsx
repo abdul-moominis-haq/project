@@ -261,7 +261,7 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <Badge className="text-green-700 border-green-300 bg-green-50 px-2 sm:px-3 py-1">
+              <Badge className="text-green-700 border-green-300 bg-green-50 border px-2 sm:px-3 py-1">
                 <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                 <span className="text-xs sm:text-sm">AI Powered</span>
               </Badge>
@@ -300,7 +300,7 @@ export default function ChatPage() {
                     {quickActions.map((action, index) => (
                       <Button
                         key={index}
-                        className="w-full justify-start h-auto p-2 sm:p-3 lg:p-4 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-200 group border border-gray-200 bg-white"
+                        className="w-full justify-start h-auto p-2 sm:p-3 lg:p-4 border border-gray-200 bg-white hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-200 group"
                         onClick={() => handleQuickAction(action)}
                       >
                         <div className="flex items-start gap-2 sm:gap-3 w-full">

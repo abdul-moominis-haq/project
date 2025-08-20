@@ -22,8 +22,6 @@ type Session = {
   [key: string]: any;
 } | null;
 
-type AuthChangeEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED' | 'PASSWORD_RECOVERY';
-
 interface AuthContextType {
   user: User | null;
   supabaseUser: SupabaseUser | null;
@@ -130,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
+      async (event: any, session: Session) => {
         if (session?.user) {
           setSupabaseUser(session.user);
           const mappedUser: User = {

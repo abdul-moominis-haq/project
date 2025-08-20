@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 // Import Ghana-specific services
 import ghanaWeatherService, { GhanaWeatherData } from '@/services/ghana-weather';
 import ghanaLocationService from '@/services/ghana-location';
+import openWeatherService, { ProcessedWeatherData, WeatherRecommendation } from '@/services/openweather-api';
 import { useAuth } from '@/contexts/AuthContext';
 import { localStorageService } from '@/services/local-storage';
 import { 
@@ -110,6 +112,12 @@ export default function WeatherPage() {
   const [historicalData, setHistoricalData] = useState(ghanaHistoricalWeatherData);
   const [forecastData, setForecastData] = useState<any[]>([]);
   const [loadingWeather, setLoadingWeather] = useState(false);
+  
+  // State for real-time OpenWeather data
+  const [realTimeWeather, setRealTimeWeather] = useState<ProcessedWeatherData | null>(null);
+  const [weatherRecommendations, setWeatherRecommendations] = useState<WeatherRecommendation[]>([]);
+  const [loadingRealTime, setLoadingRealTime] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('Accra');
 
   // Track navigation to weather page
   useEffect(() => {
@@ -161,6 +169,39 @@ export default function WeatherPage() {
       });
     }
   }, [profile]);
+
+  // Load real-time weather data
+  const loadRealTimeWeather = async () => {
+    setLoadingRealTime(true);
+    try {
+      let weatherData: ProcessedWeatherData;
+      
+      if (userLocation) {
+        // Use GPS coordinates if available
+        weatherData = await openWeatherService.getCurrentWeather(
+          userLocation.latitude, 
+          userLocation.longitude
+        );
+      } else {
+        // Use selected city
+        weatherData = await openWeatherService.getCurrentWeatherByCity(selectedCity, 'GH');
+      }
+      
+      setRealTimeWeather(weatherData);
+      setWeatherRecommendations(weatherData.recommendations);
+    } catch (error) {
+      console.error('Error loading real-time weather:', error);
+      // Fallback to dummy data
+      setRealTimeWeather(null);
+    } finally {
+      setLoadingRealTime(false);
+    }
+  };
+
+  // Load real-time weather on component mount and when location changes
+  useEffect(() => {
+    loadRealTimeWeather();
+  }, [userLocation, selectedCity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API Functions using Ghana Weather Service
   const loadWeatherData = async () => {
@@ -371,8 +412,11 @@ export default function WeatherPage() {
                             <p className="text-xs sm:text-sm text-gray-600">{crop.type} - {crop.variety}</p>
                           </div>
                           <Badge 
-                            variant={crop.health > 80 ? 'default' : crop.health > 60 ? 'secondary' : 'destructive'}
-                            className="text-xs shrink-0 ml-2"
+                            className={`text-xs shrink-0 ml-2 ${
+                              crop.health > 80 ? 'bg-green-100 text-green-800' : 
+                              crop.health > 60 ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-red-100 text-red-800'
+                            }`}
                           >
                             {crop.health}%
                           </Badge>
@@ -461,45 +505,77 @@ export default function WeatherPage() {
           </TabsContent>
 
           <TabsContent value="current" className="space-y-6">
-            {/* Current Weather Overview for Ghana */}
+            {/* Current Weather Overview with Real-time Data */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Cloud className="w-5 h-5" />
-                    <span>Current Ghana Weather</span>
+                    <span>Current Weather</span>
+                    {loadingRealTime && <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
                   </CardTitle>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <MapPin className="w-4 h-4" />
-                      <span>{userLocation ? userLocation.name : currentLocationData?.label || 'Accra'}</span>
+                      <span>{realTimeWeather?.location || (userLocation ? userLocation.name : currentLocationData?.label || 'Accra')}</span>
                       {userLocation && (
-                        <Badge variant="outline">GPS: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}</Badge>
+                        <Badge>GPS: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}</Badge>
                       )}
                       {!userLocation && (
-                        <Badge variant="outline">GPS: {currentLocationData?.coords}</Badge>
+                        <Badge>GPS: {currentLocationData?.coords}</Badge>
                       )}
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={requestLocation}
-                      disabled={isLoadingLocation}
-                      className="flex items-center space-x-1"
-                    >
-                      <MapPin className="w-3 h-3" />
-                      <span>{isLoadingLocation ? 'Getting Location...' : 'Use My Location'}</span>
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      <Select value={selectedCity} onValueChange={setSelectedCity}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Accra">Accra</SelectItem>
+                          <SelectItem value="Kumasi">Kumasi</SelectItem>
+                          <SelectItem value="Tamale">Tamale</SelectItem>
+                          <SelectItem value="Cape Coast">Cape Coast</SelectItem>
+                          <SelectItem value="Ho">Ho</SelectItem>
+                          <SelectItem value="Wa">Wa</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={requestLocation}
+                        disabled={isLoadingLocation}
+                        className="flex items-center space-x-1"
+                      >
+                        <MapPin className="w-3 h-3" />
+                        <span>{isLoadingLocation ? 'Getting Location...' : 'Use My Location'}</span>
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center space-x-8">
                     <div className="flex items-center space-x-4">
-                      <span className="text-6xl">{weatherData.icon}</span>
-                      <div>
-                        <p className="text-4xl font-bold text-gray-900">{weatherData.temperature}°C</p>
-                        <p className="text-gray-600 text-lg">{weatherData.condition}</p>
-                      </div>
+                      {realTimeWeather ? (
+                        <>
+                          <img 
+                            src={openWeatherService.getWeatherIconUrl(realTimeWeather.icon)} 
+                            alt={realTimeWeather.description}
+                            className="w-16 h-16"
+                          />
+                          <div>
+                            <p className="text-4xl font-bold text-gray-900">{realTimeWeather.temperature}°C</p>
+                            <p className="text-gray-600 text-lg capitalize">{realTimeWeather.description}</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-6xl">{weatherData.icon}</span>
+                          <div>
+                            <p className="text-4xl font-bold text-gray-900">{weatherData.temperature}°C</p>
+                            <p className="text-gray-600 text-lg">{weatherData.condition}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-6 flex-1">
@@ -508,15 +584,15 @@ export default function WeatherPage() {
                           <Droplets className="w-5 h-5 text-blue-500" />
                           <span className="text-sm text-gray-600">Humidity</span>
                         </div>
-                        <p className="text-2xl font-semibold">{weatherData.humidity}%</p>
+                        <p className="text-2xl font-semibold">{realTimeWeather?.humidity || weatherData.humidity}%</p>
                       </div>
                       
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
-                          <Droplets className="w-5 h-5 text-blue-600" />
-                          <span className="text-sm text-gray-600">Rainfall</span>
+                          <Gauge className="w-5 h-5 text-purple-500" />
+                          <span className="text-sm text-gray-600">Pressure</span>
                         </div>
-                        <p className="text-2xl font-semibold">{weatherData.rainfall}mm</p>
+                        <p className="text-2xl font-semibold">{realTimeWeather?.pressure || 1013} hPa</p>
                       </div>
                       
                       <div className="space-y-2">
@@ -524,34 +600,73 @@ export default function WeatherPage() {
                           <Wind className="w-5 h-5 text-gray-500" />
                           <span className="text-sm text-gray-600">Wind Speed</span>
                         </div>
-                        <p className="text-2xl font-semibold">8 km/h</p>
+                        <p className="text-2xl font-semibold">{realTimeWeather?.windSpeed || 8} m/s</p>
                       </div>
                       
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
-                          <Sun className="w-5 h-5 text-yellow-500" />
-                          <span className="text-sm text-gray-600">UV Index</span>
+                          <Eye className="w-5 h-5 text-green-500" />
+                          <span className="text-sm text-gray-600">Visibility</span>
                         </div>
-                        <p className="text-2xl font-semibold">9 (Very High)</p>
+                        <p className="text-2xl font-semibold">{realTimeWeather?.visibility?.toFixed(1) || 10} km</p>
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Additional weather info */}
+                  {realTimeWeather && (
+                    <div className="mt-6 grid grid-cols-2 gap-4 pt-4 border-t">
+                      <div className="flex items-center space-x-2">
+                        <Sunrise className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm text-gray-600">Sunrise: {realTimeWeather.sunrise.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Sunset className="w-4 h-4 text-orange-600" />
+                        <span className="text-sm text-gray-600">Sunset: {realTimeWeather.sunset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Ghana Agricultural Info Card */}
+              {/* Weather Recommendations Card */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Sprout className="w-5 h-5" />
-                    <span>Agricultural Conditions</span>
+                    <span>Weather Recommendations</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="bg-green-50 rounded-lg p-3">
-                    <h4 className="font-medium text-green-900 mb-2">Growing Season</h4>
-                    <p className="text-sm text-green-800">Rainy season - ideal for most crops</p>
-                  </div>
+                  {weatherRecommendations.length > 0 ? (
+                    weatherRecommendations.map((rec, index) => (
+                      <Alert key={index} className={`${
+                        rec.severity === 'high' ? 'border-red-200 bg-red-50' :
+                        rec.severity === 'medium' ? 'border-yellow-200 bg-yellow-50' :
+                        'border-green-200 bg-green-50'
+                      }`}>
+                        <AlertTriangle className={`w-4 h-4 ${
+                          rec.severity === 'high' ? 'text-red-600' :
+                          rec.severity === 'medium' ? 'text-yellow-600' :
+                          'text-green-600'
+                        }`} />
+                        <AlertDescription>
+                          <div className="space-y-1">
+                            <p className="font-medium">{rec.category}</p>
+                            <p className="text-sm">{rec.message}</p>
+                            {rec.action && (
+                              <p className="text-sm italic text-gray-600">Action: {rec.action}</p>
+                            )}
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    ))
+                  ) : (
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <h4 className="font-medium text-green-900 mb-2">Good Conditions</h4>
+                      <p className="text-sm text-green-800">Current weather conditions are favorable for farming activities.</p>
+                    </div>
+                  )}
                   
                   <div className="bg-blue-50 rounded-lg p-3">
                     <h4 className="font-medium text-blue-900 mb-2">Soil Conditions</h4>

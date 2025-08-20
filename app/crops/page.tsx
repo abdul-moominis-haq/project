@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { localStorageService } from '@/services/local-storage';
+import openWeatherService, { ProcessedWeatherData, WeatherRecommendation } from '@/services/openweather-api';
 // Import API services (commented out for now)
 // import { cropsAPI, sensorsAPI, advisoryAPI } from '@/services/api';
 import { 
@@ -24,6 +25,7 @@ import {
   Bot, 
   Thermometer,
   Droplets,
+  Wind,
   Activity,
   Battery,
   AlertTriangle,
@@ -53,6 +55,11 @@ export default function CropsPage() {
   ]);
   const [loading, setLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  
+  // Weather state for crop recommendations
+  const [weatherData, setWeatherData] = useState<ProcessedWeatherData | null>(null);
+  const [cropWeatherRecommendations, setCropWeatherRecommendations] = useState<{[cropId: string]: WeatherRecommendation[]}>({});
+  const [loadingWeather, setLoadingWeather] = useState(false);
 
   // Track navigation to crops page
   useEffect(() => {
@@ -65,7 +72,29 @@ export default function CropsPage() {
   useEffect(() => {
     loadCropsData();
     loadSensorsData();
-  }, []);
+    loadWeatherData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load weather data for crop recommendations
+  const loadWeatherData = async () => {
+    setLoadingWeather(true);
+    try {
+      // Default to Accra, Ghana for weather data
+      const weather = await openWeatherService.getCurrentWeatherByCity('Accra', 'GH');
+      setWeatherData(weather);
+      
+      // Generate crop-specific recommendations
+      const recommendations: {[cropId: string]: WeatherRecommendation[]} = {};
+      crops.forEach(crop => {
+        recommendations[crop.id] = openWeatherService.getCropRecommendations(crop.type, weather);
+      });
+      setCropWeatherRecommendations(recommendations);
+    } catch (error) {
+      console.error('Error loading weather data:', error);
+    } finally {
+      setLoadingWeather(false);
+    }
+  };
 
   // API Functions (commented out for now, using dummy data)
   const loadCropsData = async () => {
@@ -411,6 +440,78 @@ export default function CropsPage() {
           </div>
         </div>
 
+        {/* Real-time Weather Recommendations for Crops */}
+        {weatherData && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="w-5 h-5 text-blue-600" />
+                <span>Current Weather Impact on Crops</span>
+                {loadingWeather && <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Thermometer className="w-4 h-4 text-red-500" />
+                    <span className="text-sm font-medium">Temperature</span>
+                  </div>
+                  <p className="text-lg font-semibold">{weatherData.temperature}°C</p>
+                  <p className="text-xs text-gray-600 capitalize">{weatherData.description}</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Droplets className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-medium">Humidity</span>
+                  </div>
+                  <p className="text-lg font-semibold">{weatherData.humidity}%</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Wind className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm font-medium">Wind Speed</span>
+                  </div>
+                  <p className="text-lg font-semibold">{weatherData.windSpeed} m/s</p>
+                </div>
+              </div>
+              
+              {/* Crop-specific recommendations */}
+              {Object.keys(cropWeatherRecommendations).length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <h4 className="font-medium text-gray-900">Recommendations for Your Crops:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filteredCrops.slice(0, 4).map((crop) => {
+                      const recommendations = cropWeatherRecommendations[crop.id] || [];
+                      const highPriorityRecs = recommendations.filter(rec => rec.severity === 'high').slice(0, 1);
+                      const allRecs = highPriorityRecs.length > 0 ? highPriorityRecs : recommendations.slice(0, 1);
+                      
+                      return (
+                        <div key={crop.id} className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Sprout className="w-4 h-4 text-green-600" />
+                            <span className="font-medium text-sm">{crop.name}</span>
+                            <Badge className="text-xs">{crop.type}</Badge>
+                          </div>
+                          {allRecs.map((rec, index) => (
+                            <div key={index} className="space-y-1">
+                              <p className="text-xs font-medium text-gray-700">{rec.category}</p>
+                              <p className="text-xs text-gray-600">{rec.message}</p>
+                              {rec.action && (
+                                <p className="text-xs italic text-blue-600">Action: {rec.action}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs defaultValue="crops" className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="crops" className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
@@ -664,7 +765,7 @@ export default function CropsPage() {
                             <div className="flex items-center space-x-1">
                               <Target className="w-3 h-3 text-gray-400" />
                               <span>{formatDate(crop.expectedHarvest)}</span>
-                              <Badge variant="outline" className="ml-2 text-xs">
+                              <Badge className="ml-2 text-xs">
                                 {getDaysToHarvest(crop.expectedHarvest)} days
                               </Badge>
                             </div>
@@ -861,7 +962,7 @@ export default function CropsPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{sensor.name}</CardTitle>
-                      <Badge variant={sensor.status === 'active' ? 'default' : 'secondary'}>
+                      <Badge className={sensor.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
                         {sensor.status === 'active' ? 'Active' : sensor.status === 'inactive' ? 'Inactive' : 'Maintenance'}
                       </Badge>
                     </div>
