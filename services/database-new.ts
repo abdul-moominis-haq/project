@@ -1,5 +1,5 @@
 // Supabase Database Service - Main API Interface
-// services/database.ts
+// services/database-new.ts
 
 import { createClient } from '@/utils/supabase/client';
 import type { 
@@ -9,16 +9,14 @@ import type {
   CropType, 
   DatabaseCrop, 
   IoTDevice, 
-  SensorReading, 
   Post, 
   Comment, 
   Recommendation, 
-  WeatherAlert, 
   Notification, 
   UserPreferences 
 } from '@/types';
 
-// Get supabase client
+// Initialize Supabase client
 const supabase = createClient();
 
 // Profile Services
@@ -38,8 +36,6 @@ export const profileService = {
   },
 
   async updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile | null> {
-    console.log('Updating profile for user:', userId, 'with data:', updates);
-    
     const { data, error } = await supabase
       .from('profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -49,11 +45,8 @@ export const profileService = {
     
     if (error) {
       console.error('Error updating profile:', error);
-      console.error('Update data that caused error:', updates);
       return null;
     }
-    
-    console.log('Profile updated successfully:', data);
     return data;
   },
 
@@ -261,7 +254,7 @@ export const cropService = {
         );
       
       if (userFields && userFields.length > 0) {
-        const fieldIds = userFields.map((f: {id: string}) => f.id);
+        const fieldIds = userFields.map((f: { id: any; }) => f.id);
         query = query.in('field_id', fieldIds);
       } else {
         return [];
@@ -344,9 +337,13 @@ export const iotDeviceService = {
     }
     if (userId) {
       // Get devices for all user's farms/fields
-      const farms = await farmService.getFarms(userId);
-      if (farms && farms.length > 0) {
-        const farmIds = farms.map((f: Farm) => f.id);
+      const { data: userFarms } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', userId);
+      
+      if (userFarms && userFarms.length > 0) {
+        const farmIds = userFarms.map((f: { id: any; }) => f.id);
         query = query.in('farm_id', farmIds);
       } else {
         return [];
@@ -478,7 +475,136 @@ export const communityService = {
   }
 };
 
-// Legacy compatibility - keeping the old db export temporarily
+// Recommendation Services
+export const recommendationService = {
+  async getRecommendations(userId: string): Promise<Recommendation[]> {
+    const { data, error } = await supabase
+      .from('recommendations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching recommendations:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async createRecommendation(recommendation: Omit<Recommendation, 'id' | 'created_at'>): Promise<Recommendation | null> {
+    const { data, error } = await supabase
+      .from('recommendations')
+      .insert(recommendation)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating recommendation:', error);
+      return null;
+    }
+    return data;
+  },
+
+  async acknowledgeRecommendation(recommendationId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('recommendations')
+      .update({ 
+        is_acknowledged: true, 
+        acknowledged_at: new Date().toISOString() 
+      })
+      .eq('id', recommendationId);
+    
+    if (error) {
+      console.error('Error acknowledging recommendation:', error);
+      return false;
+    }
+    return true;
+  }
+};
+
+// Notification Services
+export const notificationService = {
+  async getNotifications(userId: string): Promise<Notification[]> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async markAsRead(notificationId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ 
+        is_read: true, 
+        read_at: new Date().toISOString() 
+      })
+      .eq('id', notificationId);
+    
+    if (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async createNotification(notification: Omit<Notification, 'id' | 'created_at'>): Promise<Notification | null> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(notification)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating notification:', error);
+      return null;
+    }
+    return data;
+  }
+};
+
+// User Preferences Services
+export const preferencesService = {
+  async getPreferences(userId: string): Promise<UserPreferences | null> {
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching preferences:', error);
+      return null;
+    }
+    return data;
+  },
+
+  async updatePreferences(userId: string, updates: Partial<UserPreferences>): Promise<UserPreferences | null> {
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .upsert({ 
+        user_id: userId, 
+        ...updates, 
+        updated_at: new Date().toISOString() 
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating preferences:', error);
+      return null;
+    }
+    return data;
+  }
+};
+
+// Legacy compatibility export
 export const db = {
   getProfile: profileService.getProfile,
   createProfile: profileService.createProfile,

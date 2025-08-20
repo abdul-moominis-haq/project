@@ -102,18 +102,23 @@ export default function CropsPage() {
     }
   };
 
-  // API Functions (commented out for now, using dummy data)
+  // API Functions - Updated to use new database endpoints
   const loadCropsData = async () => {
     setLoading(true);
     try {
-      // const userId = '1'; // Get from auth context
-      // const cropsData = await cropsAPI.getCrops(userId);
-      // setCrops(cropsData);
-      
-      // Using dummy data for now
-      setCrops(dummyCrops);
+      const response = await fetch('/api/crops');
+      if (response.ok) {
+        const data = await response.json();
+        setCrops(data.crops || []);
+      } else {
+        console.error('Failed to load crops:', await response.text());
+        // Fallback to dummy data
+        setCrops(dummyCrops);
+      }
     } catch (error) {
       console.error('Error loading crops:', error);
+      // Fallback to dummy data
+      setCrops(dummyCrops);
     } finally {
       setLoading(false);
     }
@@ -121,14 +126,19 @@ export default function CropsPage() {
 
   const loadSensorsData = async () => {
     try {
-      // const userId = '1'; // Get from auth context
-      // const sensorsData = await sensorsAPI.getSensors(userId);
-      // setSensors(sensorsData);
-      
-      // Using dummy data for now
-      setSensors(dummyIoTSensors);
+      const response = await fetch('/api/iot-devices');
+      if (response.ok) {
+        const data = await response.json();
+        setSensors(data.devices || []);
+      } else {
+        console.error('Failed to load sensors:', await response.text());
+        // Fallback to dummy data
+        setSensors(dummyIoTSensors);
+      }
     } catch (error) {
       console.error('Error loading sensors:', error);
+      // Fallback to dummy data
+      setSensors(dummyIoTSensors);
     }
   };
   

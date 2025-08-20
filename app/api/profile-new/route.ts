@@ -46,49 +46,44 @@ export async function GET() {
       })
     }
 
-    // Fallback to mock data if no profile in database
+    // No profile found, return default profile
     console.log('No profile in database, returning default profile for user:', user.id)
     return NextResponse.json({
       profile: {
         id: user.id,
         email: user.email,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+        first_name: user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'User',
+        last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+        role: 'farmer',
         created_at: user.created_at,
-        // Mock data for now
-        location: null,
+        updated_at: user.created_at,
+        // Default values
         phone: null,
+        profile_image: null,
         farm_name: null,
         farm_size: null,
-        experience_years: null,
-        specialization: null,
+        location: null,
         bio: null,
-        preferences: {
-          notifications: {
-            email: true,
-            sms: false,
-            push: true,
-            weather: true,
-            harvest: true,
-            community: false
-          },
-          privacy: {
-            profileVisibility: 'public',
-            contact_info: 'friends',
-            activity_status: true
-          }
-        },
+        experience_years: 0,
+        specialization: [],
+        verified: false,
         stats: {
           totalCrops: 0,
           activeCrops: 0,
+          totalFarms: 0,
           communityPosts: 0,
+          farmEfficiency: 75,
           joinDate: user.created_at
         }
       }
     })
 
   } catch (error) {
-    console.error('Profile fetch error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error in profile GET:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 })
   }
 }
 
@@ -107,76 +102,34 @@ export async function PUT(request: NextRequest) {
     // Get the update data from request body
     const updateData = await request.json()
     
-    console.log('Received update data:', updateData)
-    
     // Validate the data (basic validation)
     const allowedFields = [
-      'first_name', 'last_name', 'name', 'phone', 'farm_name', 'farm_size', 
+      'first_name', 'last_name', 'phone', 'farm_name', 'farm_size', 
       'experience_years', 'specialization', 'bio', 'location',
-      'profile_image', 'avatar_url', 'role', 'preferences'
+      'profile_image', 'role'
     ]
     
-    // Filter out any fields not in the allowed list and handle field mapping
+    // Filter out any fields not in the allowed list
     const filteredData: any = {}
     Object.keys(updateData).forEach(key => {
       if (allowedFields.includes(key)) {
-        // Handle field mapping for compatibility
-        if (key === 'name' && updateData[key]) {
-          // Split name into first_name and last_name if it's a full name
-          const nameParts = updateData[key].trim().split(' ')
-          filteredData.first_name = nameParts[0] || ''
-          filteredData.last_name = nameParts.slice(1).join(' ') || ''
-        } else if (key === 'avatar_url') {
-          // Map avatar_url to profile_image
-          filteredData.profile_image = updateData[key]
-        } else {
-          filteredData[key] = updateData[key]
-        }
+        filteredData[key] = updateData[key]
       }
     })
 
     // Convert numeric fields
-    // Convert numeric fields safely
-if (filteredData.farm_size !== undefined) {
-  filteredData.farm_size = filteredData.farm_size === '' 
-    ? null 
-    : parseFloat(filteredData.farm_size);
-}
-
-if (filteredData.experience_years !== undefined) {
-  filteredData.experience_years = filteredData.experience_years === '' 
-    ? null 
-    : parseInt(filteredData.experience_years);
-}
-
-
-    // Update profile using the database service
-    console.log('Filtered data to update:', filteredData)
-    
-    // First check if profile exists
-    const existingProfile = await profileService.getProfile(user.id)
-    
-    let updatedProfile;
-    if (!existingProfile) {
-      console.log('No existing profile found, creating new profile')
-      // Create a new profile if it doesn't exist
-      const newProfileData = {
-        id: user.id,
-        email: user.email || '',
-        first_name: filteredData.first_name || '',
-        last_name: filteredData.last_name || '',
-        role: 'farmer' as const,
-        verified: false,
-        experience_years: filteredData.experience_years || 0,
-        ...filteredData
-      }
-      updatedProfile = await profileService.createProfile(newProfileData)
-    } else {
-      console.log('Updating existing profile')
-      updatedProfile = await profileService.updateProfile(user.id, filteredData)
+    if (filteredData.farm_size) {
+      filteredData.farm_size = parseFloat(filteredData.farm_size) || null
+    }
+    if (filteredData.experience_years) {
+      filteredData.experience_years = parseInt(filteredData.experience_years) || null
     }
 
-    console.log('Profile operation result:', updatedProfile)
+    // Ensure email is set
+    filteredData.email = user.email
+
+    // Update profile using the database service
+    const updatedProfile = await profileService.updateProfile(user.id, filteredData)
 
     if (updatedProfile) {
       // Get additional stats for the response
@@ -190,6 +143,8 @@ if (filteredData.experience_years !== undefined) {
       );
 
       return NextResponse.json({
+        success: true,
+        message: 'Profile updated successfully',
         profile: {
           ...updatedProfile,
           email: user.email,

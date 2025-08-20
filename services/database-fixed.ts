@@ -3,20 +3,38 @@ import { createClient as createServerClient } from '@/utils/supabase/server'
 
 // Types for our database tables
 export interface Profile {
-  id: string
-  name: string | null
-  location: string | null
-  phone: string | null
-  farm_name: string | null
-  farm_size: number | null
-  experience_years: number | null
-  specialization: string | null
-  bio: string | null
-  preferences: Record<string, any>
-  created_at: string
-  updated_at: string
+  id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  phone?: string | null;
+  role?: 'farmer' | 'expert' | 'admin';
+  location?: string | null;
+  farm_name?: string | null;
+  farm_size?: number | null;
+  experience_years?: number | null;
+  specialization?: string;  // PostgreSQL TEXT[] 
+  bio?: string | null;
+  profile_image?: string | null;
+  verified?: boolean;
+  preferences?: {
+    notifications: {
+      email: boolean;
+      sms: boolean;
+      push: boolean;
+      weather: boolean;
+      harvest: boolean;
+      community: boolean;
+    };
+    privacy: {
+      profileVisibility: string;
+      contact_info: string;
+      activity_status: boolean;
+    };
+  };
+  created_at?: string;
+  updated_at?: string;
 }
-
 export interface Crop {
   id: string
   user_id: string
