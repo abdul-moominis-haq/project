@@ -553,6 +553,9 @@ export default function WeatherPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-gray-900">Weather for {selectedCity}, Ghana</p>
+                  </div>
                   <div className="flex items-center space-x-8">
                     <div className="flex items-center space-x-4">
                       {realTimeWeather ? (

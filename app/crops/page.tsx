@@ -60,6 +60,7 @@ export default function CropsPage() {
   const [weatherData, setWeatherData] = useState<ProcessedWeatherData | null>(null);
   const [cropWeatherRecommendations, setCropWeatherRecommendations] = useState<{[cropId: string]: WeatherRecommendation[]}>({});
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('Accra');
 
   // Track navigation to crops page
   useEffect(() => {
@@ -75,12 +76,17 @@ export default function CropsPage() {
     loadWeatherData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Reload weather when city changes
+  useEffect(() => {
+    loadWeatherData();
+  }, [selectedCity]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load weather data for crop recommendations
   const loadWeatherData = async () => {
     setLoadingWeather(true);
     try {
-      // Default to Accra, Ghana for weather data
-      const weather = await openWeatherService.getCurrentWeatherByCity('Accra', 'GH');
+      // Use selected city for weather data
+      const weather = await openWeatherService.getCurrentWeatherByCity(selectedCity, 'GH');
       setWeatherData(weather);
       
       // Generate crop-specific recommendations
@@ -444,13 +450,42 @@ export default function CropsPage() {
         {weatherData && (
           <Card className="border-blue-200 bg-blue-50">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-blue-600" />
-                <span>Current Weather Impact on Crops</span>
-                {loadingWeather && <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
-              </CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  <span>Current Weather Impact on Crops</span>
+                  {loadingWeather && <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
+                </CardTitle>
+                
+                {/* Location Selector */}
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="location-select" className="text-sm font-medium text-gray-700">
+                    Location:
+                  </label>
+                  <Select value={selectedCity} onValueChange={setSelectedCity}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Select city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Accra">Accra</SelectItem>
+                      <SelectItem value="Kumasi">Kumasi</SelectItem>
+                      <SelectItem value="Tamale">Tamale</SelectItem>
+                      <SelectItem value="Cape Coast">Cape Coast</SelectItem>
+                      <SelectItem value="Takoradi">Takoradi</SelectItem>
+                      <SelectItem value="Ho">Ho</SelectItem>
+                      <SelectItem value="Sunyani">Sunyani</SelectItem>
+                      <SelectItem value="Koforidua">Koforidua</SelectItem>
+                      <SelectItem value="Wa">Wa</SelectItem>
+                      <SelectItem value="Bolgatanga">Bolgatanga</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-900">Weather for {selectedCity}, Ghana</p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">

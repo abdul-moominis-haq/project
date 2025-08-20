@@ -253,7 +253,7 @@ export default function ChatPage() {
                   AI Farming Assistant
                 </h1>
                 <p className="text-gray-600 mt-1 text-sm sm:text-base lg:text-lg">
-                  Your personal agricultural expert, available 24/7 🌱
+                  Your personal agricultural expert, available 24/7
                 </p>
                 <p className="text-green-600 text-xs sm:text-sm font-medium mt-1">
                   Ask me anything about farming, crops, weather, and more!
