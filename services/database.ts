@@ -42,7 +42,13 @@ export const profileService = {
     
     const { data, error } = await supabase
       .from('profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ 
+        ...updates, 
+        specialization: Array.isArray(updates.specialization) 
+          ? updates.specialization 
+          : [updates.specialization], // Ensure it's always an array
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', userId)
       .select()
       .single();
@@ -250,26 +256,31 @@ export const cropService = {
       query = query.eq('field_id', fieldId);
     } else if (userId) {
       // Get crops for all user's fields
-      const { data: userFields } = await supabase
-        .from('fields')
+      const { data: farms, error: farmsError } = await supabase
+        .from('farms')
         .select('id')
-        .in('farm_id', 
-          supabase
-            .from('farms')
-            .select('id')
-            .eq('user_id', userId)
-        );
-      
-      if (userFields && userFields.length > 0) {
-        const fieldIds = userFields.map((f: {id: string}) => f.id);
-        query = query.in('field_id', fieldIds);
-      } else {
+        .eq('user_id', userId);
+
+      if (farmsError || !farms || farms.length === 0) {
         return [];
       }
+      const farmIds = farms.map((f: { id: string }) => f.id);
+
+      const { data: fields, error: fieldsError } = await supabase
+        .from('fields')
+        .select('id')
+        .in('farm_id', farmIds);
+
+      if (fieldsError || !fields || fields.length === 0) {
+        return [];
+      }
+      const fieldIds = fields.map((f: { id: string }) => f.id);
+
+      query = query.in('field_id', fieldIds);
     }
-    
+
     const { data, error } = await query;
-    
+
     if (error) {
       console.error('Error fetching crops:', error);
       return [];
