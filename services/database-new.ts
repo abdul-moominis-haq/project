@@ -243,15 +243,19 @@ export const cropService = {
       query = query.eq('field_id', fieldId);
     } else if (userId) {
       // Get crops for all user's fields
+      // Get user's farms first
+      const { data: userFarms } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', userId);
+
+      const farmIds = userFarms?.map(farm => farm.id) || [];
+      
+      // Then get fields for those farms
       const { data: userFields } = await supabase
         .from('fields')
         .select('id')
-        .in('farm_id', 
-          supabase
-            .from('farms')
-            .select('id')
-            .eq('user_id', userId)
-        );
+        .in('farm_id', farmIds);
       
       if (userFields && userFields.length > 0) {
         const fieldIds = userFields.map((f: { id: any; }) => f.id);

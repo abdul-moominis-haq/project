@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { db, serverDb } from '@/services/database';
+import { db } from '@/services/database';
+import type { Profile } from '@/types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const profile = await serverDb.getExtendedProfile(user.id);
+      const profile = await db.getProfile(user.id);
       
       if (!profile) {
         return NextResponse.json(
@@ -105,7 +106,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Fetch updated profile
-    const updatedProfile = await db.getExtendedProfile(user.id);
+    const updatedProfile = await db.getProfile(user.id);
 
     return NextResponse.json({ 
       message: 'Profile updated successfully',
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
 
     const profileData = {
       id: user.id,
+      email: user.email || '',
       name: name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
       location,
       phone,
@@ -170,7 +172,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const profile = await db.getExtendedProfile(user.id);
+    const profile = await db.getProfile(user.id);
 
     return NextResponse.json({ 
       message: 'Profile created successfully',
