@@ -23,7 +23,6 @@ import {
 import { 
   currentWeather, 
   tomorrowForecast, 
-  dummyCrops, 
   dummyAdvisories 
 } from '@/lib/dummy-data';
 import { Crop, Advisory } from '@/types';
@@ -40,13 +39,10 @@ export default function DashboardPage() {
   }, [user]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const activeCrops = dummyCrops.length;
-  const averageHealth = Math.round(dummyCrops.reduce((sum, crop) => sum + crop.health, 0) / dummyCrops.length);
-  const daysToNextHarvest = Math.min(...dummyCrops.map(crop => {
-    const today = new Date();
-    const harvest = new Date(crop.expectedHarvest);
-    return Math.ceil((harvest.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  }));
+  // Initialize empty state values
+  const activeCrops = 0;
+  const averageHealth = 0;
+  const daysToNextHarvest = 0;
 
   const getPriorityColor = (priority: Advisory['priority']) => {
     switch (priority) {
@@ -67,11 +63,8 @@ export default function DashboardPage() {
   };
 
   // Filter content based on search query
-  const filteredCrops = dummyCrops.filter(crop => 
-    crop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    crop.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    crop.variety.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Initialize empty crops array
+  const filteredCrops: Crop[] = [];
 
   const filteredAdvisories = dummyAdvisories.filter(advisory =>
     advisory.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -144,18 +137,19 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 sm:gap-4">
-                  {filteredCrops.map((crop) => (
-                    <CropCard
-                      key={crop.id}
-                      crop={{
-                        ...crop,
-                        expectedHarvest: crop.expectedHarvest
-                          ? new Date(crop.expectedHarvest).toLocaleDateString()
-                          : 'N/A',
-                      }}
-                      onViewDetails={() => setSelectedCrop(crop)}
-                    />
-                  ))}
+                  {filteredCrops.map((crop) => {
+                    return (
+                      <CropCard
+                        key={crop.id}
+                        crop={{
+                          ...crop,
+                          expectedharvest: crop.expectedharvest
+                            ? new Date(crop.expectedharvest).toLocaleDateString()
+                            : 'N/A',
+                        }}
+                        onViewDetails={() => setSelectedCrop(crop)} />
+                    );
+                  })}
                   {filteredCrops.length === 0 && searchQuery && (
                     <div className="col-span-full text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
                       No crops found matching &ldquo;{searchQuery}&rdquo;

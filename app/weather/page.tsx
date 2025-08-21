@@ -9,12 +9,34 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-// Import Ghana-specific services
-import ghanaWeatherService, { GhanaWeatherData } from '@/services/ghana-weather';
-import ghanaLocationService from '@/services/ghana-location';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import openWeatherService, { ProcessedWeatherData, WeatherRecommendation } from '@/services/openweather-api';
+import weatherForecastService, { ProcessedForecastData } from '@/services/weather-forecast';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+import { Line, Bar } from 'react-chartjs-2';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 import { localStorageService } from '@/services/local-storage';
 import { 
   Cloud, 
@@ -41,7 +63,8 @@ import {
   CloudRain,
   CloudSnow,
   Sunrise,
-  Sunset
+  Sunset,
+  ArrowRight
 } from 'lucide-react';
 
 // Ghana dummy data for fallback
@@ -110,7 +133,10 @@ export default function WeatherPage() {
   // State for Ghana weather data
   const [weatherData, setWeatherData] = useState(ghanaCurrentWeather);
   const [historicalData, setHistoricalData] = useState(ghanaHistoricalWeatherData);
-  const [forecastData, setForecastData] = useState<any[]>([]);
+  const [forecast, setForecast] = useState<ProcessedForecastData>({
+    daily: [],
+    farmingRecommendations: []
+  });
   const [loadingWeather, setLoadingWeather] = useState(false);
   
   // State for real-time OpenWeather data
@@ -229,7 +255,6 @@ export default function WeatherPage() {
   // Load weather data on component mount and location change
   useEffect(() => {
     loadWeatherData();
-    loadHistoricalData();
     loadForecastData();
   }, [userLocation, selectedLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -294,68 +319,51 @@ export default function WeatherPage() {
         locationName = location.name;
       }
 
-      const weather = await ghanaWeatherService.getCurrentWeather(lat, lng);
-      if (weather) {
-        const weatherResult = {
-          temperature: weather.temperature,
-          condition: weather.description || 'Partly Cloudy',
-          humidity: weather.humidity,
-          rainfall: weather.rainfall || 0,
-          icon: weather.description?.includes('rain') ? '🌧️' : 
-                weather.description?.includes('cloud') ? '⛅' : 
-                weather.description?.includes('sun') ? '☀️' : '🌤️'
-        };
-        
-        setWeatherData(weatherResult);
-        
-        // Track weather check activity
-        if (user?.id) {
-          localStorageService.recordActivity(user.id, {
-            type: 'weather_check',
-            data: {
-              location: locationName,
-              temperature: weather.temperature,
-              condition: weather.description,
-              timestamp: new Date().toISOString()
-            }
-          });
-        }
+      const weatherData = await openWeatherService.getCurrentWeather(lat, lng);
+      setRealTimeWeather(weatherData);
+      setWeatherRecommendations(weatherData.recommendations);
+
+      // Track weather check activity
+      if (user?.id) {
+        localStorageService.recordActivity(user.id, {
+          type: 'weather_check',
+          data: {
+            location: locationName,
+            temperature: weatherData.temperature,
+            condition: weatherData.description,
+            timestamp: new Date().toISOString()
+          }
+        });
       }
     } catch (error) {
       console.error('Error loading weather data:', error);
-      setWeatherData(ghanaCurrentWeather);
+      setRealTimeWeather(null);
     } finally {
       setLoadingWeather(false);
     }
   };
 
-  const loadHistoricalData = async () => {
-    try {
-      // Use dummy data for now since historical API might not be available
-      setHistoricalData(ghanaHistoricalWeatherData);
-    } catch (error) {
-      console.error('Error loading historical data:', error);
-      setHistoricalData(ghanaHistoricalWeatherData);
-    }
-  };
-
   const loadForecastData = async () => {
     try {
-      // Use dummy forecast data for Ghana climate
-      setForecastData([
-        { date: '2025-01-08', temperature: 29, humidity: 72, rainfall: 0, condition: 'Sunny', icon: '☀️' },
-        { date: '2025-01-09', temperature: 27, humidity: 78, rainfall: 12.5, condition: 'Thunderstorms', icon: '⛈️' },
-        { date: '2025-01-10', temperature: 31, humidity: 65, rainfall: 0, condition: 'Clear', icon: '☀️' },
-        { date: '2025-01-11', temperature: 28, humidity: 73, rainfall: 5.2, condition: 'Rain Showers', icon: '🌦️' },
-        { date: '2025-01-12', temperature: 30, humidity: 68, rainfall: 0, condition: 'Partly Cloudy', icon: '⛅' },
-        { date: '2025-01-13', temperature: 26, humidity: 85, rainfall: 18.3, condition: 'Heavy Rain', icon: '🌧️' },
-        { date: '2025-01-14', temperature: 32, humidity: 60, rainfall: 0, condition: 'Sunny', icon: '☀️' }
-      ]);
+      let lat, lng;
+      
+      if (userLocation) {
+        lat = userLocation.latitude;
+        lng = userLocation.longitude;
+      } else {
+        const location = getLocationCoordinates(selectedLocation);
+        lat = location.lat;
+        lng = location.lng;
+      }
+
+      const forecastData = await weatherForecastService.getForecast(lat, lng);
+      setForecast(forecastData);
     } catch (error) {
       console.error('Error loading forecast data:', error);
-      setForecastData([
-        { date: '2025-01-08', temperature: 29, humidity: 72, rainfall: 0, condition: 'Sunny', icon: '☀️' }
-      ]);
+      setForecast({
+        daily: [],
+        farmingRecommendations: []
+      });
     }
   };
 
@@ -423,22 +431,7 @@ export default function WeatherPage() {
     temperature: data.temperature
   }));
 
-  // Update weekly forecast to use Ghana data
-  const weeklyForecast = forecastData.length > 0 ? forecastData.slice(0, 7).map((day, index) => ({
-    day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index],
-    temp: day.temperature,
-    condition: day.icon,
-    humidity: day.humidity,
-    rainfall: day.rainfall
-  })) : [
-    { day: 'Mon', temp: 29, condition: '☀️', humidity: 68, rainfall: 0 },
-    { day: 'Tue', temp: 27, condition: '⛅', humidity: 75, rainfall: 2.1 },
-    { day: 'Wed', temp: 31, condition: '☀️', humidity: 62, rainfall: 0 },
-    { day: 'Thu', temp: 26, condition: '⛈️', humidity: 85, rainfall: 18.5 },
-    { day: 'Fri', temp: 28, condition: '🌦️', humidity: 78, rainfall: 5.2 },
-    { day: 'Sat', temp: 30, condition: '☀️', humidity: 65, rainfall: 0 },
-    { day: 'Sun', temp: 32, condition: '☀️', humidity: 60, rainfall: 0 },
-  ];
+
 
   return (
     <Layout>
@@ -834,24 +827,184 @@ export default function WeatherPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                  {weeklyForecast.map((day, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-4 text-center">
-                      <p className="font-medium text-gray-900 mb-2">{day.day}</p>
-                      <div className="text-3xl mb-2">{day.condition}</div>
-                      <p className="text-xl font-bold text-gray-900 mb-2">{day.temp}°C</p>
-                      <div className="space-y-1 text-xs text-gray-600">
-                        <div className="flex items-center justify-center space-x-1">
-                          <Droplets className="w-3 h-3" />
-                          <span>{day.humidity}%</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-1">
-                          <Cloud className="w-3 h-3" />
-                          <span>{day.rainfall}mm</span>
+                <div className="space-y-6">
+                  {/* Weekly Forecast Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                    {forecast.daily.map((day, index) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-4 text-center">
+                        <p className="font-medium text-gray-900 mb-2">{day.day}</p>
+                        <img 
+                          src={weatherForecastService.getWeatherIconUrl(day.icon)}
+                          alt={day.condition}
+                          className="w-12 h-12 mx-auto mb-2"
+                        />
+                        <p className="text-xl font-bold text-gray-900 mb-2">{day.temp}°C</p>
+                        <div className="space-y-1 text-xs text-gray-600">
+                          <div className="flex items-center justify-center space-x-1">
+                            <Droplets className="w-3 h-3" />
+                            <span>{day.humidity}%</span>
+                          </div>
+                          <div className="flex items-center justify-center space-x-1">
+                            <Cloud className="w-3 h-3" />
+                            <span>{day.rainfall}mm</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  {/* Weather Charts */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Temperature Chart */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Temperature Trends</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Line
+                          data={{
+                            labels: forecast?.daily?.map(day => day.day) || [],
+                            datasets: [
+                              {
+                                label: 'Maximum Temperature',
+                                data: forecast?.daily?.map(day => day.tempMax) || [],
+                                borderColor: 'rgb(239, 68, 68)',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                              },
+                              {
+                                label: 'Minimum Temperature',
+                                data: forecast?.daily?.map(day => day.tempMin) || [],
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                              },
+                            ],
+                          }}
+                          options={{
+                            responsive: true,
+                            plugins: {
+                              legend: {
+                                position: 'top' as const,
+                              },
+                              title: {
+                                display: true,
+                                text: 'Temperature Trends'
+                              }
+                            },
+                            scales: {
+                              y: {
+                                type: 'linear' as const,
+                                display: true,
+                                position: 'left' as const,
+                                title: {
+                                  display: true,
+                                  text: 'Temperature (°C)'
+                                }
+                              }
+                            }
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {/* Rainfall and Humidity Chart */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Rainfall & Humidity</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Bar
+                          data={{
+                            labels: forecast?.daily?.map(day => day.day) || [],
+                            datasets: [
+                              {
+                                label: 'Rainfall (mm)',
+                                data: forecast?.daily?.map(day => day.rainfall) || [],
+                                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                                yAxisID: 'y1',
+                              },
+                              {
+                                label: 'Humidity (%)',
+                                data: forecast?.daily?.map(day => day.humidity) || [],
+                                backgroundColor: 'rgba(167, 139, 250, 0.5)',
+                                yAxisID: 'y2',
+                              },
+                            ],
+                          }}
+                          options={{
+                            responsive: true,
+                            plugins: {
+                              legend: {
+                                position: 'top' as const,
+                              },
+                              title: {
+                                display: true,
+                                text: 'Rainfall & Humidity'
+                              }
+                            },
+                            scales: {
+                              y1: {
+                                type: 'linear' as const,
+                                display: true,
+                                position: 'left' as const,
+                                title: {
+                                  display: true,
+                                  text: 'Rainfall (mm)'
+                                },
+                                grid: {
+                                  drawOnChartArea: false
+                                }
+                              },
+                              y2: {
+                                type: 'linear' as const,
+                                display: true,
+                                position: 'right' as const,
+                                title: {
+                                  display: true,
+                                  text: 'Humidity (%)'
+                                }
+                              }
+                            }
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Farming Recommendations */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Sprout className="w-5 h-5" />
+                        <span>Farming Recommendations</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {forecast.farmingRecommendations.map((rec, index) => (
+                          <Alert key={index} className={`${
+                            rec.severity === 'high' ? 'border-red-200 bg-red-50' :
+                            rec.severity === 'medium' ? 'border-yellow-200 bg-yellow-50' :
+                            'border-green-200 bg-green-50'
+                          }`}>
+                            <AlertTitle>{rec.category}</AlertTitle>
+                            <AlertDescription>
+                              <p>{rec.message}</p>
+                              {rec.action && (
+                                <Button variant="link" className="mt-2 p-0 h-auto font-normal">
+                                  <ArrowRight className="w-4 h-4 mr-1" />
+                                  {rec.action}
+                                </Button>
+                              )}
+                            </AlertDescription>
+                          </Alert>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </CardContent>
             </Card>

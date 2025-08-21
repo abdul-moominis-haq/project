@@ -1,9 +1,9 @@
 import { User, Weather, WeatherForecast, Crop, Advisory, CommunityPost, IoTSensor, WeatherHistoricalData } from '@/types';
 
-export const dummyUsers: User[] = [
-  { id: '1', name: 'John Farmer', email: 'john@example.com', location: 'Nairobi, Kenya' },
-  { id: '2', name: 'Mary Grower', email: 'mary@example.com', location: 'Mombasa, Kenya' },
-];
+// export const dummyUsers: User[] = [
+//   { id: '1', name: 'John Farmer', email: 'john@example.com', location: 'Nairobi, Kenya' },
+//   { id: '2', name: 'Mary Grower', email: 'mary@example.com', location: 'Mombasa, Kenya' },
+// ];
 
 export const currentWeather: Weather = {
   temperature: 24,
