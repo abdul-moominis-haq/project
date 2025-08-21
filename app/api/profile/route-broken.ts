@@ -1,59 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
-import { profileService, cropService, farmService, communityService } from '@/services/database'
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import { db } from '@/services/database';
+import type { Profile } from '@/types';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    console.log('Getting profile for user:', user.id)
-
-    // Get profile from database
-    const profile = await profileService.getProfile(user.id)
-    
-    if (!profile) {
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
     try {
-      // Get additional stats
-      const [crops, farms, posts] = await Promise.all([
-        cropService.getCrops(undefined, user.id),
-        farmService.getFarms(user.id),
-        communityService.getPosts(100, 0) // Get user's posts
-      ]);
-
-      const userPosts = posts.filter((post: { user_id: any }) => post.user_id === user.id);
-      const activeCrops = crops.filter((crop: { status: string }) => 
-        ['planted', 'growing', 'flowering'].includes(crop.status)
-      );
-
-      const enrichedProfile = {
-        ...profile,
-        stats: {
-          total_crops: crops.length,
-          active_crops: activeCrops.length,
-          total_farms: farms.length,
-          total_posts: userPosts.length
-        }
-      };
-
-      return NextResponse.json({ profile: enrichedProfile });
-    } catch (error: any) {
-      console.error('Error fetching additional profile data:', error);
+      const profile = await db.getProfile(user.id);
       
-      // Return the basic profile if we can't get additional data
+      if (!profile) {
+        return NextResponse.json(
+          { error: 'Profile not found' },
+          { status: 404 }
+        );
+      }
+
       return NextResponse.json({ profile });
+    } catch (error: any) {
+      console.error('Error fetching profile:', error);
+      
+      // If it's a database error, try to create a basic profile
+      if (error?.message?.includes('PGRST116') || error?.code === 'PGRST116') {
+        console.log('Profile not found, this should have been handled by getExtendedProfile');
+        return NextResponse.json(
+          { error: 'Profile not found and could not be created' },
+          { status: 404 }
+        );
+      }
+      
+      throw error;
     }
+
   } catch (error) {
     console.error('Profile fetch error:', error);
     return NextResponse.json(
@@ -109,7 +96,7 @@ export async function PUT(request: NextRequest) {
       }
     });
 
-    const success = await profileService.updateProfile(user.id, updates);
+    const success = await db.updateProfile(user.id, updates);
 
     if (!success) {
       return NextResponse.json(
@@ -119,7 +106,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Fetch updated profile
-    const updatedProfile = await profileService.getProfile(user.id);
+    const updatedProfile = await db.getProfile(user.id);
 
     return NextResponse.json({ 
       message: 'Profile updated successfully',
@@ -176,7 +163,7 @@ export async function POST(request: NextRequest) {
       preferences: preferences || {}
     };
 
-    const success = await profileService.createProfile(profileData);
+    const success = await db.createProfile(profileData);
 
     if (!success) {
       return NextResponse.json(
@@ -185,23 +172,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const profile = await profileService.getProfile(user.id);
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile created but could not be retrieved' },
-        { status: 500 }
-      );
-    }
+    const profile = await db.getProfile(user.id);
 
     return NextResponse.json({ 
       message: 'Profile created successfully',
       profile
     });
+
   } catch (error) {
     console.error('Profile creation error:', error);
     return NextResponse.json(
-      { error: 'Failed to create profile', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to create profile' },
       { status: 500 }
     );
   }

@@ -147,7 +147,12 @@ export default function DashboardPage() {
                   {filteredCrops.map((crop) => (
                     <CropCard
                       key={crop.id}
-                      crop={crop}
+                      crop={{
+                        ...crop,
+                        expectedHarvest: crop.expectedHarvest
+                          ? new Date(crop.expectedHarvest).toLocaleDateString()
+                          : 'N/A',
+                      }}
                       onViewDetails={() => setSelectedCrop(crop)}
                     />
                   ))}
@@ -268,7 +273,7 @@ export default function DashboardPage() {
                 <div>
                   <span className="text-gray-500">Expected Harvest:</span>
                   <p className="font-medium">
-                    {new Date(selectedCrop.expectedHarvest).toLocaleDateString()}
+                    {selectedCrop.expectedharvest ? new Date(selectedCrop.expectedharvest).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
               </div>
