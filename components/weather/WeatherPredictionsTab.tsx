@@ -128,9 +128,9 @@ export const WeatherPredictionsTab: React.FC = () => {
 }`;
 
   const regions = [
-    'Greater Accra', 'Ashanti', 'Northern', 'Upper East', 'Upper West',
-    'Volta', 'Eastern', 'Western', 'Central', 'Brong-Ahafo'
-  ];
+'Greater Accra','Ashanti','Northern','Central','Volta','Upper West','Upper East','Bono','Bono East','Ahafo','Western','Western North','Eastern','Oti','North East','Savannah'
+];
+
 
   const processPredictionData = async () => {
     if (!predictionInput.trim()) {

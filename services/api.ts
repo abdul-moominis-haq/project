@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { User, Weather, WeatherForecast, Crop, Advisory, CommunityPost, IoTSensor } from '@/types';
+import { supabase } from './supabase';
+
 
 // Base API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:8000/';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -187,39 +189,25 @@ export const weatherAPI = {
 export const cropsAPI = {
   // Get all crops for user
   getCrops: async (userId: string) => {
-    // const response = await api.get(`/crops?userId=${userId}`);
-    // return response.data;
-    
-    // Using dummy data for now
-    return [
-      {
-        id: '1',
-        name: 'Maize Field A',
-        type: 'Maize',
-        variety: 'H614',
-        datePlanted: '2024-11-15',
-        expectedHarvest: '2025-03-15',
-        stage: 'Vegetative',
-        health: 88,
-        progress: 35,
-        location: 'North Field',
-        area: 2.5
-      }
-    ];
+    const { data, error } = await supabase
+      .from("crops")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (error) throw error;
+    return data as Crop[];
   },
 
   // Create new crop
   createCrop: async (cropData: Partial<Crop>) => {
-    // const response = await api.post('/crops', cropData);
-    // return response.data;
-    
-    // Using dummy data for now
-    return {
-      id: Date.now().toString(),
-      ...cropData,
-      health: 85,
-      progress: 15
-    };
+    const { data, error } = await supabase
+      .from("crops")
+      .insert([cropData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Crop;
   },
 
   // Update crop

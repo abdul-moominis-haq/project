@@ -17,7 +17,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { localStorageService } from '@/services/local-storage';
 import openWeatherService, { ProcessedWeatherData, WeatherRecommendation } from '@/services/openweather-api';
 // Import API services (commented out for now)
-// import { cropsAPI, sensorsAPI, advisoryAPI } from '@/services/api';
+import { cropsAPI, sensorsAPI, advisoryAPI } from '@/services/api';
+
 import { 
   Plus, 
   Sprout, 
@@ -146,8 +147,8 @@ export default function CropsPage() {
     name: '',
     type: '',
     variety: '',
-    datePlanted: '',
-    expectedHarvest: '',
+    dateplanted: '',
+    expectedharvest: '',
     area: '',
     location: '',
     stage: 'Seedling',
@@ -165,9 +166,9 @@ export default function CropsPage() {
   const filteredCrops = crops.filter(crop => 
     crop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     crop.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    crop.variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    crop.stage.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    crop.location.toLowerCase().includes(searchQuery.toLowerCase())
+    (crop.variety?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (crop.stage || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (crop.location?.toLowerCase() ?? '').includes(searchQuery.toLowerCase())
   );
 
   // Filter sensors based on search
@@ -178,74 +179,62 @@ export default function CropsPage() {
   );
 
 
-  const handleAddCrop = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const cropData = {
-        name: newCrop.name,
-        type: newCrop.type,
-        variety: newCrop.variety,
-        datePlanted: newCrop.datePlanted,
-        expectedHarvest: newCrop.expectedHarvest,
-        stage: newCrop.stage,
-        location: newCrop.location,
-        area: parseFloat(newCrop.area)
-      };
+ const handleAddCrop = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-      // API call (commented out for now)
-      // const newCropData = await cropsAPI.createCrop(cropData);
-      // setCrops([...crops, newCropData]);
-
-      // Using dummy data for now
-      const crop: Crop = {
-        id: (crops.length + 1).toString(),
-        ...cropData,
-        health: 85,
-        progress: 15
-      };
-      setCrops([...crops, crop]);
-
-      // Save crop to local storage and record activity
-      if (user?.id) {
-        localStorageService.saveCrop(user.id, crop);
-        localStorageService.recordActivity(user.id, {
-          type: 'crop_add',
-          data: {
-            cropName: crop.name,
-            cropType: crop.type,
-            variety: crop.variety,
-            area: crop.area,
-            location: crop.location
-          }
-        });
-      }
-
-      // Reset form
-      setNewCrop({
-        name: '',
-        type: '',
-        variety: '',
-        datePlanted: '',
-        expectedHarvest: '',
-        area: '',
-        location: '',
-        stage: 'Seedling',
-        health: 85,
-        progress: 15
-      });
-      setIsAddCropOpen(false);
-      setAlertMessage({type: 'success', message: `${crop.name} has been added successfully!`});
-      setTimeout(() => setAlertMessage(null), 5000);
-    } catch (error) {
-      console.error('Error adding crop:', error);
-      setAlertMessage({type: 'error', message: 'Failed to add crop. Please try again.'});
-      setTimeout(() => setAlertMessage(null), 5000);
-    } finally {
+  try {
+    if (!newCrop.name || !newCrop.type || !newCrop.dateplanted || !newCrop.area) {
+      setAlertMessage({ type: 'error', message: 'Please fill in all required fields.' });
       setLoading(false);
+      return;
     }
-  };
+
+    const cropData = {
+      name: newCrop.name.trim(),
+      type: newCrop.type.trim(),
+      variety: newCrop.variety.trim(),
+      dateplanted: newCrop.dateplanted,
+      expectedharvest: newCrop.expectedharvest,
+      stage: newCrop.stage,
+      location: newCrop.location,
+      area: isNaN(parseFloat(newCrop.area)) ? 0 : parseFloat(newCrop.area)
+
+    };
+
+    console.log('Adding new crop:', cropData);
+
+    const newCropData = await cropsAPI.createCrop(cropData);
+    setCrops([...crops, newCropData]);
+
+    // Reset form
+    setNewCrop({
+      name: '',
+      type: '',
+      variety: '',
+      dateplanted: '',
+      expectedharvest: '',
+      area: '',
+      location: '',
+      stage: 'Seedling',
+      health: 85,
+      progress: 15
+    });
+
+    setIsAddCropOpen(false);
+    setAlertMessage({ type: 'success', message: `${cropData.name} has been added successfully!` });
+    setTimeout(() => setAlertMessage(null), 5000);
+
+  } catch (error: any) {
+    console.error('Error adding crop:', error);
+    const errorMessage = error?.response?.data?.message || 'Failed to add crop. Please try again.';
+    setAlertMessage({ type: 'error', message: errorMessage });
+    setTimeout(() => setAlertMessage(null), 5000);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleAddSensor = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -598,7 +587,7 @@ export default function CropsPage() {
                     <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                     <div>
                       <p className="text-lg sm:text-2xl font-bold">
-                        {crops.length > 0 ? Math.round(crops.reduce((sum, crop) => sum + crop.health, 0) / crops.length) : 0}%
+                        {crops.length > 0 ? Math.round(crops.reduce((sum, crop) => sum + (crop.health ?? 0), 0) / crops.length) : 0}%
                       </p>
                       <p className="text-xs sm:text-sm text-gray-600">Avg Health</p>
                     </div>
@@ -612,7 +601,7 @@ export default function CropsPage() {
                     <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                     <div>
                       <p className="text-lg sm:text-2xl font-bold">
-                        {crops.length > 0 ? Math.min(...crops.map(crop => getDaysToHarvest(crop.expectedHarvest))) : 0}
+                        {crops.length > 0 ? Math.min(...crops.map(crop => getDaysToHarvest(crop.expectedharvest || new Date().toISOString()))) : 0}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-600">Days to Next Harvest</p>
                     </div>
@@ -626,7 +615,7 @@ export default function CropsPage() {
                     <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                     <div>
                       <p className="text-2xl font-bold">
-                        {crops.reduce((sum, crop) => sum + crop.area, 0).toFixed(1)}
+                        {crops.reduce((sum, crop) => sum + (crop.area ?? 0), 0).toFixed(1)}
                       </p>
                       <p className="text-sm text-gray-600">Total Area (acres)</p>
                     </div>
@@ -709,22 +698,22 @@ export default function CropsPage() {
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="datePlanted">Date Planted</Label>
+                        <Label htmlFor="dateplanted">Date Planted</Label>
                         <Input 
-                          id="datePlanted" 
+                          id="dateplanted" 
                           type="date" 
-                          value={newCrop.datePlanted}
-                          onChange={(e) => setNewCrop({...newCrop, datePlanted: e.target.value})}
+                          value={newCrop.dateplanted}
+                          onChange={(e) => setNewCrop({...newCrop, dateplanted: e.target.value})}
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="expectedHarvest">Expected Harvest</Label>
+                        <Label htmlFor="expectedharvest">Expected Harvest</Label>
                         <Input 
-                          id="expectedHarvest" 
+                          id="expectedharvest" 
                           type="date" 
-                          value={newCrop.expectedHarvest}
-                          onChange={(e) => setNewCrop({...newCrop, expectedHarvest: e.target.value})}
+                          value={newCrop.expectedharvest}
+                          onChange={(e) => setNewCrop({...newCrop, expectedharvest: e.target.value})}
                           required
                         />
                       </div>
@@ -803,27 +792,27 @@ export default function CropsPage() {
                           <td className="py-4 px-2 text-sm">
                             <div className="flex items-center space-x-1">
                               <Calendar className="w-3 h-3 text-gray-400" />
-                              <span>{formatDate(crop.datePlanted)}</span>
+                              <span>{formatDate(crop.dateplanted || new Date().toISOString())}</span>
                             </div>
                           </td>
                           <td className="py-4 px-2 text-sm">
                             <div className="flex items-center space-x-1">
                               <Target className="w-3 h-3 text-gray-400" />
-                              <span>{formatDate(crop.expectedHarvest)}</span>
+                              <span>{formatDate(crop.expectedharvest || new Date().toISOString())}</span>
                               <Badge className="ml-2 text-xs">
-                                {getDaysToHarvest(crop.expectedHarvest)} days
+                                {getDaysToHarvest(crop.expectedharvest || new Date().toISOString())} days
                               </Badge>
                             </div>
                           </td>
                           <td className="py-4 px-2">
-                            <Badge className={getStageColor(crop.stage)}>{crop.stage}</Badge>
+                            <Badge className={getStageColor(crop.stage || 'unknown')}>{crop.stage || 'unknown'}</Badge>
                           </td>
                           <td className="py-4 px-2">
                             <div className="flex items-center space-x-2">
                               <span className="text-sm font-medium">{crop.health}%</span>
                               <div className="w-16 bg-gray-200 rounded-full h-2">
                                 <div 
-                                  className={`h-2 rounded-full ${getHealthColor(crop.health)}`}
+                                  className={`h-2 rounded-full ${getHealthColor(crop.health ?? 0)}`}
                                   style={{ width: `${crop.health}%` }}
                                 ></div>
                               </div>

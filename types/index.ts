@@ -332,17 +332,19 @@ export interface WeatherForecast extends Weather {
 
 export interface Crop {
   id: string;
+  user_id: string;
   name: string;
   type: string;
-  datePlanted: string;
-  expectedHarvest: string;
-  stage: string;
-  health: number;
-  progress: number;
-  location: string;
-  variety: string;
-  area: number;
+  variety?: string;
+  dateplanted?: string;
+  expectedharvest?: string;
+  stage?: string;
+  health?: number;
+  progress?: number;
+  location?: string;
+  area?: number;
 }
+
 
 export interface Advisory {
   id: string;

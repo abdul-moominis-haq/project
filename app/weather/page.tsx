@@ -127,30 +127,104 @@ export default function WeatherPage() {
   }, [user]);
 
   // Ghana locations
+  // const ghanaLocations = [
+  //   { value: 'accra', label: 'Accra', coords: '5.6037°N, 0.1870°W' },
+  //   { value: 'kumasi', label: 'Kumasi', coords: '6.6885°N, 1.6244°W' },
+  //   { value: 'tamale', label: 'Tamale', coords: '9.4008°N, 0.8393°W' },
+  //   { value: 'cape_coast', label: 'Cape Coast', coords: '5.1053°N, 1.2466°W' },
+  //   { value: 'ho', label: 'Ho', coords: '6.6110°N, 0.4708°E' },
+  //   { value: 'wa', label: 'Wa', coords: '10.0602°N, 2.5057°W' },
+  //   { value: 'bolgatanga', label: 'Bolgatanga', coords: '10.7856°N, 0.8515°W' },
+  //   { value: 'sunyani', label: 'Sunyani', coords: '7.3386°N, 2.3267°W' }
+  // ];
   const ghanaLocations = [
-    { value: 'accra', label: 'Accra', coords: '5.6037°N, 0.1870°W' },
-    { value: 'kumasi', label: 'Kumasi', coords: '6.6885°N, 1.6244°W' },
-    { value: 'tamale', label: 'Tamale', coords: '9.4008°N, 0.8393°W' },
-    { value: 'cape_coast', label: 'Cape Coast', coords: '5.1053°N, 1.2466°W' },
-    { value: 'ho', label: 'Ho', coords: '6.6110°N, 0.4708°E' },
-    { value: 'wa', label: 'Wa', coords: '10.0602°N, 2.5057°W' },
-    { value: 'bolgatanga', label: 'Bolgatanga', coords: '10.7856°N, 0.8515°W' },
-    { value: 'sunyani', label: 'Sunyani', coords: '7.3386°N, 2.3267°W' }
-  ];
+  { value: 'accra', label: 'Accra', coords: '5.6037°N, 0.1870°W' }, // Greater Accra
+  { value: 'kumasi', label: 'Kumasi', coords: '6.6885°N, 1.6244°W' }, // Ashanti
+  { value: 'tamale', label: 'Tamale', coords: '9.4008°N, 0.8393°W' }, // Northern
+  { value: 'cape_coast', label: 'Cape Coast', coords: '5.1053°N, 1.2466°W' }, // Central
+  { value: 'ho', label: 'Ho', coords: '6.6110°N, 0.4708°E' }, // Volta
+  { value: 'wa', label: 'Wa', coords: '10.0602°N, 2.5057°W' }, // Upper West
+  { value: 'bolgatanga', label: 'Bolgatanga', coords: '10.7856°N, 0.8515°W' }, // Upper East
+  { value: 'sunyani', label: 'Sunyani', coords: '7.3386°N, 2.3267°W' }, // Bono
+  { value: 'techiman', label: 'Techiman', coords: '7.5830°N, 1.9381°W' }, // Bono East
+  { value: 'goaso', label: 'Goaso', coords: '6.8010°N, 2.5237°W' }, // Ahafo
+  { value: 'sekondi_takoradi', label: 'Sekondi-Takoradi', coords: '4.9437°N, 1.7040°W' }, // Western
+  { value: 'sefwi_wiawso', label: 'Sefwi Wiawso', coords: '6.2012°N, 2.4857°W' }, // Western North
+  { value: 'koforidua', label: 'Koforidua', coords: '6.0941°N, 0.2591°W' }, // Eastern
+  { value: 'dambai', label: 'Dambai', coords: '8.1667°N, 0.1500°E' }, // Oti
+  { value: 'nalerigu', label: 'Nalerigu', coords: '10.5276°N, 0.3690°W' }, // North East
+  { value: 'damongo', label: 'Damongo', coords: '9.0833°N, 1.8167°W' }, // Savannah
+  { value: 'ejura', label: 'Ejura', coords: '7.3833°N, 1.3500°W' }, // Maize, yam, soya
+  { value: 'wenchi', label: 'Wenchi', coords: '7.7333°N, 2.1000°W' }, // Cashew, maize
+  { value: 'navrongo', label: 'Navrongo', coords: '10.8956°N, 1.0921°W' }, // Rice, millet
+  { value: 'salaga', label: 'Salaga', coords: '8.5500°N, 0.5167°W' }, // Yam, groundnuts
+  { value: 'yendi', label: 'Yendi', coords: '9.4427°N, 0.0099°W' }, // Rice, maize
+  { value: 'savelugu', label: 'Savelugu', coords: '9.6241°N, 0.8250°W' }, // Soya, maize
+  { value: 'bawku', label: 'Bawku', coords: '11.0616°N, 0.2417°W' }, // Groundnuts, millet
+  { value: 'damongo_farms', label: 'Damongo (Farming Area)', coords: '9.0833°N, 1.8167°W' }, // Yam, maize
+  { value: 'wenchi_cashew', label: 'Wenchi Cashew Belt', coords: '7.7333°N, 2.1000°W' }, // Cashew hub
+  { value: 'asante_mampong', label: 'Asante Mampong', coords: '7.0627°N, 1.4000°W' }, // Cocoa, maize
+  { value: 'goaso_cocoa', label: 'Goaso Cocoa Belt', coords: '6.8010°N, 2.5237°W' }, // Cocoa
+  { value: 'suhum', label: 'Suhum', coords: '6.0333°N, 0.4500°W' }, // Cocoa, vegetables
+  { value: 'nsawam', label: 'Nsawam', coords: '5.8080°N, 0.3500°W' } // Pineapple, vegetables
+];
+
+
+  // const getLocationCoordinates = (locationValue: string) => {
+  //   const locations = {
+  //     'accra': { lat: 5.6037, lng: -0.1870, name: 'Accra' },
+  //     'kumasi': { lat: 6.6885, lng: -1.6244, name: 'Kumasi' },
+  //     'tamale': { lat: 9.4008, lng: -0.8393, name: 'Tamale' },
+  //     'cape_coast': { lat: 5.1053, lng: -1.2466, name: 'Cape Coast' },
+  //     'ho': { lat: 6.6110, lng: 0.4708, name: 'Ho' },
+  //     'wa': { lat: 10.0602, lng: -2.5057, name: 'Wa' },
+  //     'bolgatanga': { lat: 10.7856, lng: -0.8515, name: 'Bolgatanga' },
+  //     'sunyani': { lat: 7.3386, lng: -2.3267, name: 'Sunyani' }
+  //   };
+  //   return locations[locationValue as keyof typeof locations] || locations['accra'];
+  // };
 
   const getLocationCoordinates = (locationValue: string) => {
-    const locations = {
-      'accra': { lat: 5.6037, lng: -0.1870, name: 'Accra' },
-      'kumasi': { lat: 6.6885, lng: -1.6244, name: 'Kumasi' },
-      'tamale': { lat: 9.4008, lng: -0.8393, name: 'Tamale' },
-      'cape_coast': { lat: 5.1053, lng: -1.2466, name: 'Cape Coast' },
-      'ho': { lat: 6.6110, lng: 0.4708, name: 'Ho' },
-      'wa': { lat: 10.0602, lng: -2.5057, name: 'Wa' },
-      'bolgatanga': { lat: 10.7856, lng: -0.8515, name: 'Bolgatanga' },
-      'sunyani': { lat: 7.3386, lng: -2.3267, name: 'Sunyani' }
-    };
-    return locations[locationValue as keyof typeof locations] || locations['accra'];
+  const locations = {
+    // Major Cities
+    'accra': { lat: 5.6037, lng: -0.1870, name: 'Accra' },
+    'kumasi': { lat: 6.6885, lng: -1.6244, name: 'Kumasi' },
+    'tamale': { lat: 9.4008, lng: -0.8393, name: 'Tamale' },
+    'cape_coast': { lat: 5.1053, lng: -1.2466, name: 'Cape Coast' },
+    'ho': { lat: 6.6110, lng: 0.4708, name: 'Ho' },
+    'wa': { lat: 10.0602, lng: -2.5057, name: 'Wa' },
+    'bolgatanga': { lat: 10.7856, lng: -0.8515, name: 'Bolgatanga' },
+    'sunyani': { lat: 7.3386, lng: -2.3267, name: 'Sunyani' },
+
+    // Additional Regional Capitals
+    'techiman': { lat: 7.5830, lng: -1.9381, name: 'Techiman' },
+    'goaso': { lat: 6.8010, lng: -2.5237, name: 'Goaso' },
+    'sekondi_takoradi': { lat: 4.9437, lng: -1.7040, name: 'Sekondi-Takoradi' },
+    'sefwi_wiawso': { lat: 6.2012, lng: -2.4857, name: 'Sefwi Wiawso' },
+    'koforidua': { lat: 6.0941, lng: -0.2591, name: 'Koforidua' },
+    'dambai': { lat: 8.1667, lng: 0.1500, name: 'Dambai' },
+    'nalerigu': { lat: 10.5276, lng: -0.3690, name: 'Nalerigu' },
+    'damongo': { lat: 9.0833, lng: -1.8167, name: 'Damongo' },
+
+    // Popular Farming Areas
+    'ejura': { lat: 7.3833, lng: -1.3500, name: 'Ejura' },
+    'wenchi': { lat: 7.7333, lng: -2.1000, name: 'Wenchi' },
+    'navrongo': { lat: 10.8956, lng: -1.0921, name: 'Navrongo' },
+    'salaga': { lat: 8.5500, lng: -0.5167, name: 'Salaga' },
+    'yendi': { lat: 9.4427, lng: -0.0099, name: 'Yendi' },
+    'savelugu': { lat: 9.6241, lng: -0.8250, name: 'Savelugu' },
+    'bawku': { lat: 11.0616, lng: -0.2417, name: 'Bawku' },
+    'damongo_farms': { lat: 9.0833, lng: -1.8167, name: 'Damongo (Farming Area)' },
+    'wenchi_cashew': { lat: 7.7333, lng: -2.1000, name: 'Wenchi Cashew Belt' },
+    'asante_mampong': { lat: 7.0627, lng: -1.4000, name: 'Asante Mampong' },
+    'goaso_cocoa': { lat: 6.8010, lng: -2.5237, name: 'Goaso Cocoa Belt' },
+    'suhum': { lat: 6.0333, lng: -0.4500, name: 'Suhum' },
+    'nsawam': { lat: 5.8080, lng: -0.3500, name: 'Nsawam' }
   };
+
+  return locations[locationValue as keyof typeof locations] || locations['accra'];
+};
+
 
   // Load weather data on component mount and location change
   useEffect(() => {
@@ -531,12 +605,35 @@ export default function WeatherPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Accra">Accra</SelectItem>
-                          <SelectItem value="Kumasi">Kumasi</SelectItem>
-                          <SelectItem value="Tamale">Tamale</SelectItem>
-                          <SelectItem value="Cape Coast">Cape Coast</SelectItem>
-                          <SelectItem value="Ho">Ho</SelectItem>
-                          <SelectItem value="Wa">Wa</SelectItem>
+                          <SelectItem value="accra">Accra</SelectItem>
+                          <SelectItem value="kumasi">Kumasi</SelectItem>
+                          <SelectItem value="tamale">Tamale</SelectItem>
+                          <SelectItem value="cape_coast">Cape Coast</SelectItem>
+                          <SelectItem value="ho">Ho</SelectItem>
+                          <SelectItem value="wa">Wa</SelectItem>
+                          <SelectItem value="bolgatanga">Bolgatanga</SelectItem>
+                          <SelectItem value="sunyani">Sunyani</SelectItem>
+                          <SelectItem value="techiman">Techiman</SelectItem>
+                          <SelectItem value="goaso">Goaso</SelectItem>
+                          <SelectItem value="sekondi_takoradi">Sekondi-Takoradi</SelectItem>
+                          <SelectItem value="sefwi_wiawso">Sefwi Wiawso</SelectItem>
+                          <SelectItem value="koforidua">Koforidua</SelectItem>
+                          <SelectItem value="dambai">Dambai</SelectItem>
+                          <SelectItem value="nalerigu">Nalerigu</SelectItem>
+                          <SelectItem value="damongo">Damongo</SelectItem>
+                          <SelectItem value="ejura">Ejura</SelectItem>
+                          <SelectItem value="wenchi">Wenchi</SelectItem>
+                          <SelectItem value="navrongo">Navrongo</SelectItem>
+                          <SelectItem value="salaga">Salaga</SelectItem>
+                          <SelectItem value="yendi">Yendi</SelectItem>
+                          <SelectItem value="savelugu">Savelugu</SelectItem>
+                          <SelectItem value="bawku">Bawku</SelectItem>
+                          <SelectItem value="damongo_farms">Damongo (Farming Area)</SelectItem>
+                          <SelectItem value="wenchi_cashew">Wenchi Cashew Belt</SelectItem>
+                          <SelectItem value="asante_mampong">Asante Mampong</SelectItem>
+                          <SelectItem value="goaso_cocoa">Goaso Cocoa Belt</SelectItem>
+                          <SelectItem value="suhum">Suhum</SelectItem>
+                          <SelectItem value="nsawam">Nsawam</SelectItem>
                         </SelectContent>
                       </Select>
                       <Button 

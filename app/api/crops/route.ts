@@ -52,19 +52,19 @@ export async function POST(request: NextRequest) {
 
     // Create crop
     const newCrop = await cropService.createCrop({
-      field_id: cropData.field_id,
-      crop_type_id: cropData.crop_type_id,
-      variety: cropData.variety,
-      planting_date: cropData.planting_date,
-      expected_harvest_date: cropData.expected_harvest_date,
+      field_id: cropData.field_id || '',
+      crop_type_id: cropData.crop_type_id || 'dumm',
+      variety: cropData.variety || '',
+      planting_date: cropData.planting_date || '',
+      expected_harvest_date: cropData.expected_harvest_date || '',
       quantity_planted: cropData.quantity_planted ? parseFloat(cropData.quantity_planted) : undefined,
       area_planted: cropData.area_planted ? parseFloat(cropData.area_planted) : undefined,
       status: cropData.status || 'planned',
       health_score: cropData.health_score || 100,
-      growth_stage: cropData.growth_stage,
+      growth_stage: cropData.growth_stage || '',
       progress_percentage: cropData.progress_percentage || 0,
-      notes: cropData.notes,
-      images: cropData.images
+      notes: cropData.notes || '',
+      images: cropData.images || ''
     })
 
     if (newCrop) {
