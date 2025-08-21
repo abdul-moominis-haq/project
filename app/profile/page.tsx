@@ -86,22 +86,18 @@ export default function ProfilePage() {
     setIsEditing(true);
   };
 
-  const handleSaveProfile = async () => {
-    if (!editedUser) {
-      console.error('No edited user data available');
-      return;
-    }
+    const handleSaveProfile = async () => {
+    if (!editedUser) return;
     
     setLoading(true);
     
     try {
       const response = await fetch('/api/profile', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: editedUser.name,
+          first_name: editedUser.first_name,
+          last_name: editedUser.last_name,
           location: editedUser.location,
           phone: editedUser.phone,
           farm_name: editedUser.farm_name,
@@ -109,41 +105,42 @@ export default function ProfilePage() {
           experience_years: editedUser.experience_years,
           specialization: editedUser.specialization,
           bio: editedUser.bio,
-          avatar_url: editedUser.avatar_url,
           preferences: editedUser.preferences
-        }),
+        })
       });
-
-      if (response.ok) {
-        const updatedProfile = await response.json();
-        
-        // Save to local storage
-        if (authUser?.id) {
-          localStorageService.saveProfile(authUser.id, updatedProfile.profile);
-          localStorageService.recordActivity(authUser.id, {
-            type: 'profile_update',
-            data: {
-              action: 'updated profile information',
-              fields: Object.keys(editedUser)
-            }
-          });
-        }
-        
-        // Refresh profile data from AuthContext
-        await refreshProfile();
-        setIsEditing(false);
-        setAlertMessage({type: 'success', message: 'Profile updated successfully!'});
-        setTimeout(() => setAlertMessage(null), 5000);
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile');
+  
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update profile');
       }
+  
+      const { profile } = await response.json();
+      
+      // Update local storage
+      if (authUser?.id) {
+        localStorageService.saveProfile(authUser.id, profile);
+        localStorageService.recordActivity(authUser.id, {
+          type: 'profile_update',
+          data: { fields: Object.keys(editedUser) }
+        });
+      }
+      
+      await refreshProfile();
+      setIsEditing(false);
+      setAlertMessage({
+        type: 'success', 
+        message: 'Profile updated successfully!'
+      });
+      
     } catch (error) {
       console.error('Error updating profile:', error);
-      setAlertMessage({type: 'error', message: 'Failed to update profile. Please try again.'});
-      setTimeout(() => setAlertMessage(null), 5000);
+      setAlertMessage({
+        type: 'error',
+        message: 'Failed to update profile. Please try again.'
+      });
     } finally {
       setLoading(false);
+      setTimeout(() => setAlertMessage(null), 5000);
     }
   };
 
@@ -417,18 +414,29 @@ export default function ProfilePage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="name">First Name</Label>
                     {isEditing ? (
                       <Input
-                        id="name"
-                        value={editedUser?.name || ''}
-                        onChange={(e) => setEditedUser({...editedUser, name: e.target.value})}
+                        id="first_name"
+                        value={editedUser?.first_name || ''}
+                        onChange={(e) => setEditedUser({...editedUser, first_name: e.target.value})}
                       />
                     ) : (
-                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.name || 'Not set'}</p>
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.first_name || 'Not set'}</p>
                     )}
                   </div>
-                  
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name">Last Name</Label>
+                    {isEditing ? (
+                      <Input
+                        id="last_name"
+                        value={editedUser?.last_name || ''}
+                        onChange={(e) => setEditedUser({...editedUser, last_name: e.target.value})}
+                      />
+                    ) : (
+                      <p className="py-2 px-3 bg-gray-50 rounded-md">{user.last_name || 'Not set'}</p>
+                    )}
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
                     {isEditing ? (
