@@ -1,6 +1,5 @@
 import { createClient } from '@/utils/supabase/client';
-import { Profile, Farm, Post, Comment } from '@/types';
-import {ProfilePreferences} from '@/database/index';
+import { Profile, Farm, Post, Comment, ProfilePreferences } from '@/types';
 export const profileService = {
   async getProfile(userId: string, options?: {
     includeFarms?: boolean,

@@ -1,5 +1,21 @@
 // SmartAgri Database Types - Updated for Supabase Schema
 
+export interface ProfilePreferences {
+  notifications: {
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+    weather: boolean;
+    harvest: boolean;
+    community: boolean;
+  };
+  privacy: {
+    profileVisibility: string;
+    contact_info: string;
+    activity_status: boolean;
+  };
+}
+
 export interface User {
   id: string;
   name: string;
@@ -23,21 +39,7 @@ export interface Profile {
   bio?: string | null;
   profile_image?: string | null;
   verified?: boolean;
-  preferences?: {
-    notifications: {
-      email: boolean;
-      sms: boolean;
-      push: boolean;
-      weather: boolean;
-      harvest: boolean;
-      community: boolean;
-    };
-    privacy: {
-      profileVisibility: string;
-      contact_info: string;
-      activity_status: boolean;
-    };
-  };
+  preferences?: ProfilePreferences;
   created_at?: string;
   updated_at?: string;
 }

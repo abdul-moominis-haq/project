@@ -25,11 +25,11 @@ import {
   tomorrowForecast, 
   dummyAdvisories 
 } from '@/lib/dummy-data';
-import { Crop, Advisory } from '@/types';
+import { DatabaseCrop, Advisory } from '@/types';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
+  const [selectedCrop, setSelectedCrop] = useState<DatabaseCrop | null>(null);
 
   // Track navigation to dashboard
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
   // Filter content based on search query
   // Initialize empty crops array
-  const filteredCrops: Crop[] = [];
+  const filteredCrops: DatabaseCrop[] = [];
 
   const filteredAdvisories = dummyAdvisories.filter(advisory =>
     advisory.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -141,12 +141,7 @@ export default function DashboardPage() {
                     return (
                       <CropCard
                         key={crop.id}
-                        crop={{
-                          ...crop,
-                          expectedharvest: crop.expectedharvest
-                            ? new Date(crop.expectedharvest).toLocaleDateString()
-                            : 'N/A',
-                        }}
+                        crop={crop}
                         onViewDetails={() => setSelectedCrop(crop)} />
                     );
                   })}
@@ -228,7 +223,7 @@ export default function DashboardPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">{selectedCrop.name}</h3>
+                <h3 className="text-lg font-semibold">{selectedCrop.crop_type?.name || 'Unknown Crop'}</h3>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedCrop(null)}>
                   ×
                 </Button>
@@ -237,7 +232,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Type:</span>
-                    <p className="font-medium">{selectedCrop.type}</p>
+                    <p className="font-medium">{selectedCrop.crop_type?.category}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Variety:</span>
@@ -245,29 +240,29 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <span className="text-gray-500">Health:</span>
-                    <p className="font-medium">{selectedCrop.health}%</p>
+                    <p className="font-medium">{selectedCrop.health_score}%</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Progress:</span>
-                    <p className="font-medium">{selectedCrop.progress}%</p>
+                    <p className="font-medium">{selectedCrop.progress_percentage}%</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Location:</span>
-                    <p className="font-medium">{selectedCrop.location}</p>
+                    <p className="font-medium">{selectedCrop.field?.name || 'Unknown Location'}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Area:</span>
-                    <p className="font-medium">{selectedCrop.area} hectares</p>
+                    <p className="font-medium">{selectedCrop.area_planted ? `${selectedCrop.area_planted} hectares` : 'N/A'}</p>
                   </div>
                 </div>
                 <div>
-                  <span className="text-gray-500">Stage:</span>
-                  <p className="font-medium">{selectedCrop.stage}</p>
+                  <span className="text-gray-500">Growth Stage:</span>
+                  <p className="font-medium">{selectedCrop.growth_stage || selectedCrop.status}</p>
                 </div>
                 <div>
                   <span className="text-gray-500">Expected Harvest:</span>
                   <p className="font-medium">
-                    {selectedCrop.expectedharvest ? new Date(selectedCrop.expectedharvest).toLocaleDateString() : 'N/A'}
+                    {selectedCrop.expected_harvest_date ? new Date(selectedCrop.expected_harvest_date).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
               </div>
