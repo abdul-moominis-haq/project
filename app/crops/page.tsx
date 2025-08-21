@@ -39,12 +39,12 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { dummyCrops, dummyIoTSensors } from '@/lib/dummy-data';
+import { dummyIoTSensors } from '@/lib/dummy-data';
 import { Crop, IoTSensor } from '@/types';
 
 export default function CropsPage() {
   const { user } = useAuth();
-  const [crops, setCrops] = useState<Crop[]>(dummyCrops);
+  const [crops, setCrops] = useState<Crop[]>([]);
   const [sensors, setSensors] = useState<IoTSensor[]>(dummyIoTSensors);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddCropOpen, setIsAddCropOpen] = useState(false);
@@ -56,6 +56,7 @@ export default function CropsPage() {
   ]);
   const [loading, setLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{type: 'success' | 'error', message: string} | null>(null);
+
   
   // Weather state for crop recommendations
   const [weatherData, setWeatherData] = useState<ProcessedWeatherData | null>(null);
@@ -104,26 +105,20 @@ export default function CropsPage() {
   };
 
   // API Functions - Updated to use new database endpoints
-  const loadCropsData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/crops');
-      if (response.ok) {
-        const data = await response.json();
-        setCrops(data.crops || []);
-      } else {
-        console.error('Failed to load crops:', await response.text());
-        // Fallback to dummy data
-        setCrops(dummyCrops);
-      }
-    } catch (error) {
-      console.error('Error loading crops:', error);
-      // Fallback to dummy data
-      setCrops(dummyCrops);
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadCropsData = async () => {
+  setLoading(true);
+  try {
+    
+   
+      const newCropData = await cropsAPI.getCrops(user?.id || '');
+   setCrops(newCropData);
+  } catch (error) {
+    console.error('Error loading crops:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const loadSensorsData = async () => {
     try {
@@ -198,6 +193,7 @@ export default function CropsPage() {
       expectedharvest: newCrop.expectedharvest,
       stage: newCrop.stage,
       location: newCrop.location,
+      user_id: user?.id || '', // Use user ID from auth context or profile
       area: isNaN(parseFloat(newCrop.area)) ? 0 : parseFloat(newCrop.area)
 
     };

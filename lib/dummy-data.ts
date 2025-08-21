@@ -22,7 +22,7 @@ export const tomorrowForecast: WeatherForecast = {
   icon: '☀️'
 };
 
-export const dummyCrops: Crop[] = [
+export const dummyCrops = [
   {
     id: '1',
     name: 'Maize Field A',

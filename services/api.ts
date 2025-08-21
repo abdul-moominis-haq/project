@@ -188,7 +188,7 @@ export const weatherAPI = {
 // Crops API calls
 export const cropsAPI = {
   // Get all crops for user
-  getCrops: async (userId: string) => {
+  getCrops: async (userId: any) => {
     const { data, error } = await supabase
       .from("crops")
       .select("*")
@@ -199,16 +199,25 @@ export const cropsAPI = {
   },
 
   // Create new crop
-  createCrop: async (cropData: Partial<Crop>) => {
-    const { data, error } = await supabase
-      .from("crops")
-      .insert([cropData])
-      .select()
-      .single();
+ // Create new crop
+createCrop: async (cropData: Partial<Crop>) => {
+  // const { data: { user } } = await supabase.auth.getUser();
+  // if (!user) throw new Error("User not authenticated");
+  const { data, error } = await supabase
+    .from("crops")
+    .insert([
+      {
+        ...cropData,
+        // user_id: user.id,  // ✅ correct UUID
+      },
+    ])
+    .select()
+    .single();
 
-    if (error) throw error;
-    return data as Crop;
-  },
+  if (error) throw error;
+  return data as Crop;
+},
+
 
   // Update crop
   updateCrop: async (cropId: string, cropData: Partial<Crop>) => {
