@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import openWeatherService, { ProcessedWeatherData, WeatherRecommendation } from '@/services/openweather-api';
 import weatherForecastService, { ProcessedForecastData } from '@/services/weather-forecast';
+import { weatherHistoryService, WeatherHistoryData } from '@/services/weather-history';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -48,15 +49,17 @@ import {
   BarChart3,
   TrendingUp,
   Cpu,
-  Settings,
+  CalendarRange,
   Sprout,
-  Calendar,
   Activity,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Settings,
+  Calendar,
   Brain,
   Zap,
   Target,
-  AlertTriangle,
-  CheckCircle,
   Navigation,
   Eye,
   Gauge,
@@ -133,9 +136,15 @@ export default function WeatherPage() {
   // State for Ghana weather data
   const [weatherData, setWeatherData] = useState(ghanaCurrentWeather);
   const [historicalData, setHistoricalData] = useState(ghanaHistoricalWeatherData);
-  const [forecast, setForecast] = useState<ProcessedForecastData>({
+  const [forecast, setForecast] = useState<Omit<ProcessedForecastData, 'farmingRecommendations'> & {
+    yearly?: WeatherHistoryData[];
+    seasonalPatterns?: string[];
+    farmingRecommendations: WeatherRecommendation[];
+  }>({
     daily: [],
-    farmingRecommendations: []
+    farmingRecommendations: [],
+    yearly: [],
+    seasonalPatterns: []
   });
   const [loadingWeather, setLoadingWeather] = useState(false);
   
@@ -356,13 +365,27 @@ export default function WeatherPage() {
         lng = location.lng;
       }
 
-      const forecastData = await weatherForecastService.getForecast(lat, lng);
-      setForecast(forecastData);
+      const [forecastData, yearlyData] = await Promise.all([
+        weatherForecastService.getForecast(lat, lng),
+        weatherHistoryService.getYearlyAnalytics(lat, lng)
+      ]);
+
+      setForecast({
+        ...forecastData,
+        yearly: yearlyData.monthlyData,
+        seasonalPatterns: yearlyData.seasonalPatterns,
+        farmingRecommendations: [
+          ...forecastData.farmingRecommendations,
+          ...yearlyData.farmingRecommendations
+        ]
+      });
     } catch (error) {
       console.error('Error loading forecast data:', error);
       setForecast({
         daily: [],
-        farmingRecommendations: []
+        farmingRecommendations: [],
+        yearly: [],
+        seasonalPatterns: []
       });
     }
   };
@@ -1011,6 +1034,7 @@ export default function WeatherPage() {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
+            {/* Yearly Analysis */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -1022,20 +1046,163 @@ export default function WeatherPage() {
                 <p className="text-gray-600 mb-4">
                   Historical weather data and trends for {currentLocationData?.label || 'Ghana'}.
                 </p>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium mb-2">7-Day Temperature Trend</h4>
-                  <div className="grid grid-cols-7 gap-2">
-                    {historicalData.map((day, index) => (
-                      <div key={index} className="text-center">
-                        <p className="text-xs text-gray-500">
-                          {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                        </p>
-                        <p className="font-bold text-lg">{day.temperature}°</p>
-                        <p className="text-xs text-blue-600">{day.humidity}%</p>
-                        <p className="text-xs text-green-600">{day.rainfall}mm</p>
+                
+                {/* Yearly Temperature Chart */}
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">Annual Temperature & Rainfall Patterns</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Line
+                        data={{
+                          labels: forecast.yearly?.map(data => data.month) || [],
+                          datasets: [
+                            {
+                              label: 'Average Temperature (°C)',
+                              data: forecast.yearly?.map(data => data.avgTemp) || [],
+                              borderColor: 'rgb(239, 68, 68)',
+                              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                              yAxisID: 'y1',
+                              fill: true
+                            },
+                            {
+                              label: 'Total Rainfall (mm)',
+                              data: forecast.yearly?.map(data => data.totalRainfall) || [],
+                              borderColor: 'rgb(59, 130, 246)',
+                              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                              yAxisID: 'y2',
+                              fill: true
+                            }
+                          ]
+                        }}
+                        options={{
+                          responsive: true,
+                          interaction: {
+                            mode: 'index' as const,
+                            intersect: false,
+                          },
+                          plugins: {
+                            title: {
+                              display: true,
+                              text: 'Annual Weather Patterns'
+                            }
+                          },
+                          scales: {
+                            y1: {
+                              type: 'linear' as const,
+                              display: true,
+                              position: 'left' as const,
+                              title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                              }
+                            },
+                            y2: {
+                              type: 'linear' as const,
+                              display: true,
+                              position: 'right' as const,
+                              title: {
+                                display: true,
+                                text: 'Rainfall (mm)'
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Seasonal Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">Seasonal Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Seasonal Patterns */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-medium mb-2">Seasonal Patterns</h4>
+                          <ul className="space-y-2">
+                            {forecast.seasonalPatterns?.map((pattern, index) => (
+                              <li key={index} className="text-sm flex items-center space-x-2">
+                                <CalendarRange className="w-4 h-4 text-blue-600" />
+                                <span>{pattern}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Farming Recommendations */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-medium mb-2">Farming Recommendations</h4>
+                          <ul className="space-y-2">
+                            {forecast.farmingRecommendations?.map((rec, index) => (
+                              <li key={index} className="text-sm flex items-center space-x-2">
+                                <Sprout className="w-4 h-4 text-green-600" />
+                                <span>{rec.message}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Current vs Historical */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">Current vs Historical Comparison</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Temperature Comparison */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-medium mb-2">Temperature</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm">Current:</span>
+                              <span className="font-medium">{realTimeWeather?.temperature || 'N/A'}°C</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm">Historical Avg:</span>
+                              <span className="font-medium">{forecast.yearly?.[new Date().getMonth()]?.avgTemp || 'N/A'}°C</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Rainfall Comparison */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-medium mb-2">Rainfall</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm">Current:</span>
+                              <span className="font-medium">{realTimeWeather?.rainfall || '0'}mm</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm">Historical Avg:</span>
+                              <span className="font-medium">{forecast.yearly?.[new Date().getMonth()]?.totalRainfall || 'N/A'}mm</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Humidity Comparison */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-medium mb-2">Humidity</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm">Current:</span>
+                              <span className="font-medium">{realTimeWeather?.humidity || 'N/A'}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm">Historical Avg:</span>
+                              <span className="font-medium">{forecast.yearly?.[new Date().getMonth()]?.avgHumidity || 'N/A'}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </CardContent>
             </Card>

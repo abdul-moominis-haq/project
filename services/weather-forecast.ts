@@ -1,6 +1,8 @@
 // Weather Forecast Service for OpenWeather API
 import { WeatherRecommendation } from './openweather-api';
 
+export type { WeatherRecommendation };
+
 interface ForecastItem {
   dt: number;
   main: {

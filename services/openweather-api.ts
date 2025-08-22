@@ -71,6 +71,7 @@ export interface ProcessedWeatherData {
   icon: string;
   sunrise: Date;
   sunset: Date;
+  rainfall: number;
   recommendations: WeatherRecommendation[];
 }
 
@@ -121,6 +122,7 @@ class OpenWeatherService {
 
   private processWeatherData(data: OpenWeatherData): ProcessedWeatherData {
     const recommendations = this.generateRecommendations(data);
+    const rainfall = data.rain ? data.rain['1h'] || data.rain['3h'] || 0 : 0;
 
     return {
       location: `${data.name}, ${data.sys.country}`,
@@ -134,6 +136,7 @@ class OpenWeatherService {
       icon: data.weather[0].icon,
       sunrise: new Date(data.sys.sunrise * 1000),
       sunset: new Date(data.sys.sunset * 1000),
+      rainfall,
       recommendations
     };
   }
