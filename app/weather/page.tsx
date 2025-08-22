@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -267,6 +268,7 @@ const ghanaCrops = [
 ];
 
 export default function WeatherPage() {
+  const { toast } = useToast();
   const { profile, user } = useAuth();
   const [selectedLocation, setSelectedLocation] = useState('accra');
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number, name: string} | null>(null);
@@ -596,10 +598,28 @@ export default function WeatherPage() {
         setIsLoadingLocation(false);
       },
       (error) => {
-        console.error('Error getting location:', error);
+        let errorMessage = 'Unable to retrieve your location. ';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Location permission was denied.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out.';
+            break;
+          default:
+            errorMessage += 'An unknown error occurred.';
+        }
+        console.error('Geolocation Error:', { code: error.code, message: error.message });
         setLocationPermission('denied');
         setIsLoadingLocation(false);
-        alert('Unable to retrieve your location. Using Accra as default.');
+        toast({
+          title: "Location Error",
+          description: errorMessage + " Using Accra as default location.",
+          variant: "destructive",
+        });
         const accraLocation = getLocationCoordinates('accra');
         setUserLocation({ 
           latitude: accraLocation.lat, 
@@ -607,7 +627,11 @@ export default function WeatherPage() {
           name: 'Accra (Default)' 
         });
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000,      // Increased timeout to 15 seconds
+        maximumAge: 300000   // Cache location for 5 minutes
+      }
     );
   };
 
