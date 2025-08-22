@@ -95,6 +95,7 @@ export default function CropsPage() {
         message: `Error loading weather predictions: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
     }
+    
   };
 
   // Reload weather when city changes
