@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ThumbsDown, ThumbsUp, ThermometerSun, ThermometerSnowflake } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,6 +39,146 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+// Helper functions for crop recommendations
+const getRecommendedCrops = (weather: ProcessedWeatherData | null) => {
+  if (!weather) return [];
+
+  const { temperature, humidity, rainfall } = weather;
+  const recommendations = [];
+
+  // Maize
+  if (temperature >= 20 && temperature <= 30 && rainfall >= 500 && rainfall <= 1200) {
+    recommendations.push({
+      name: 'Maize',
+      reason: 'Optimal temperature and rainfall conditions for maize growth.'
+    });
+  }
+
+  // Cassava
+  if (temperature >= 25 && temperature <= 35 && rainfall >= 750) {
+    recommendations.push({
+      name: 'Cassava',
+      reason: 'Warm temperatures and good rainfall suitable for cassava cultivation.'
+    });
+  }
+
+  // Cocoa
+  if (temperature >= 18 && temperature <= 32 && humidity >= 70 && rainfall >= 1000) {
+    recommendations.push({
+      name: 'Cocoa',
+      reason: 'High humidity and adequate rainfall perfect for cocoa trees.'
+    });
+  }
+
+  // Rice
+  if (temperature >= 20 && temperature <= 35 && rainfall >= 800) {
+    recommendations.push({
+      name: 'Rice',
+      reason: 'Good temperature range and sufficient water for rice cultivation.'
+    });
+  }
+
+  // Yam
+  if (temperature >= 25 && temperature <= 35 && rainfall >= 1000 && rainfall <= 1500) {
+    recommendations.push({
+      name: 'Yam',
+      reason: 'Warm climate and moderate rainfall ideal for yam growth.'
+    });
+  }
+
+  return recommendations;
+};
+
+const getNonRecommendedCrops = (weather: ProcessedWeatherData | null) => {
+  if (!weather) return [];
+
+  const { temperature, humidity, rainfall } = weather;
+  const nonRecommended = [];
+
+  // Temperature too high
+  if (temperature > 35) {
+    nonRecommended.push({
+      name: 'Cocoa',
+      reason: 'Temperature too high for optimal cocoa growth.'
+    });
+  }
+
+  // Too dry
+  if (rainfall < 500) {
+    nonRecommended.push({
+      name: 'Rice',
+      reason: 'Insufficient rainfall for rice cultivation.'
+    });
+  }
+
+  // Low humidity
+  if (humidity < 60) {
+    nonRecommended.push({
+      name: 'Plantain',
+      reason: 'Humidity levels too low for plantain growth.'
+    });
+  }
+
+  // Excessive rainfall
+  if (rainfall > 2000) {
+    nonRecommended.push({
+      name: 'Groundnuts',
+      reason: 'Excessive rainfall may lead to root rot.'
+    });
+  }
+
+  return nonRecommended;
+};
+
+const getFarmingSystemRecommendations = (weather: ProcessedWeatherData | null) => {
+  if (!weather) return [];
+
+  const { temperature, humidity, rainfall, windSpeed } = weather;
+  const recommendations = [];
+
+  // Irrigation Systems
+  if (rainfall < 800) {
+    recommendations.push({
+      name: 'Drip Irrigation',
+      description: 'Low rainfall conditions require efficient water management. Consider installing drip irrigation.'
+    });
+  }
+
+  // Mixed Cropping
+  if (rainfall >= 800 && rainfall <= 1500) {
+    recommendations.push({
+      name: 'Mixed Cropping',
+      description: 'Favorable conditions for diverse crop combinations. Integrate legumes with cereals.'
+    });
+  }
+
+  // Agroforestry
+  if (temperature > 30) {
+    recommendations.push({
+      name: 'Agroforestry',
+      description: 'High temperatures suggest benefits from tree integration for shade and soil protection.'
+    });
+  }
+
+  // Conservation Agriculture
+  if (rainfall > 1500) {
+    recommendations.push({
+      name: 'Conservation Agriculture',
+      description: 'High rainfall area needs soil protection. Use mulching and minimum tillage.'
+    });
+  }
+
+  // Greenhouse Farming
+  if (windSpeed > 10 || temperature > 35) {
+    recommendations.push({
+      name: 'Protected Agriculture',
+      description: 'Consider greenhouse or tunnels to protect crops from extreme conditions.'
+    });
+  }
+
+  return recommendations;
+};
 import { localStorageService } from '@/services/local-storage';
 import { 
   Cloud, 
@@ -354,20 +495,24 @@ export default function WeatherPage() {
 
   const loadForecastData = async () => {
     try {
-      let lat, lng;
+      setLoadingWeather(true);
+      let lat, lng, locationName;
       
       if (userLocation) {
         lat = userLocation.latitude;
         lng = userLocation.longitude;
+        locationName = userLocation.name;
       } else {
         const location = getLocationCoordinates(selectedLocation);
         lat = location.lat;
         lng = location.lng;
+        locationName = location.name;
       }
 
-      const [forecastData, yearlyData] = await Promise.all([
+      const [forecastData, yearlyData, currentWeather] = await Promise.all([
         weatherForecastService.getForecast(lat, lng),
-        weatherHistoryService.getYearlyAnalytics(lat, lng)
+        weatherHistoryService.getYearlyAnalytics(lat, lng),
+        openWeatherService.getCurrentWeather(lat, lng)
       ]);
 
       setForecast({
@@ -379,6 +524,20 @@ export default function WeatherPage() {
           ...yearlyData.farmingRecommendations
         ]
       });
+
+      setRealTimeWeather(currentWeather);
+      setWeatherRecommendations(currentWeather.recommendations);
+
+      // Track weather check activity
+      if (user?.id) {
+        localStorageService.recordActivity(user.id, {
+          type: 'weather_check',
+          data: {
+            location: locationName,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
     } catch (error) {
       console.error('Error loading forecast data:', error);
       setForecast({
@@ -387,6 +546,9 @@ export default function WeatherPage() {
         yearly: [],
         seasonalPatterns: []
       });
+      setRealTimeWeather(null);
+    } finally {
+      setLoadingWeather(false);
     }
   };
 
@@ -413,12 +575,15 @@ export default function WeatherPage() {
         
         // Check if location is within Ghana bounds
         if (latitude >= 4.5 && latitude <= 11.5 && longitude >= -3.5 && longitude <= 1.5) {
-          setUserLocation({ 
+          const newLocation = { 
             latitude, 
             longitude, 
             name: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` 
-          });
+          };
+          setUserLocation(newLocation);
           setLocationPermission('granted');
+          setSelectedLocation(''); // Clear selected location
+          await loadForecastData();
         } else {
           alert('Location detected outside Ghana. Using Accra as default.');
           const accraLocation = getLocationCoordinates('accra');
@@ -559,35 +724,77 @@ export default function WeatherPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-                    <h4 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">Cocoa Care</h4>
-                    <p className="text-xs sm:text-sm text-blue-800 mb-3">
-                      Ideal humidity levels for cocoa trees. Continue current management practices.
-                    </p>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs w-full sm:w-auto">
-                      Monitor Pods
-                    </Button>
+                <div className="space-y-6">
+                  {/* Current Weather Summary */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-2">Current Weather Conditions</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Temperature</p>
+                        <p className="font-medium">{realTimeWeather?.temperature || 0}°C</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Humidity</p>
+                        <p className="font-medium">{realTimeWeather?.humidity || 0}%</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Rainfall</p>
+                        <p className="font-medium">{realTimeWeather?.rainfall || 0}mm</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Wind Speed</p>
+                        <p className="font-medium">{realTimeWeather?.windSpeed || 0}m/s</p>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
-                    <h4 className="font-medium text-yellow-900 mb-2 text-sm sm:text-base">Rainy Season Alert</h4>
-                    <p className="text-xs sm:text-sm text-yellow-800 mb-3">
-                      Heavy rains expected. Check drainage in cassava and maize fields.
-                    </p>
-                    <Button size="sm" variant="outline" className="text-xs w-full sm:w-auto">
-                      Check Drainage
-                    </Button>
+
+                  {/* Recommended Crops */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="font-medium text-green-900 mb-3 flex items-center">
+                        <ThumbsUp className="w-4 h-4 mr-2" />
+                        Recommended Crops
+                      </h4>
+                      <div className="space-y-3">
+                        {getRecommendedCrops(realTimeWeather).map((crop, index) => (
+                          <div key={index} className="bg-white rounded-lg p-3 border border-green-100">
+                            <h5 className="font-medium text-green-800 mb-1">{crop.name}</h5>
+                            <p className="text-sm text-green-700">{crop.reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h4 className="font-medium text-red-900 mb-3 flex items-center">
+                        <ThumbsDown className="w-4 h-4 mr-2" />
+                        Not Recommended
+                      </h4>
+                      <div className="space-y-3">
+                        {getNonRecommendedCrops(realTimeWeather).map((crop, index) => (
+                          <div key={index} className="bg-white rounded-lg p-3 border border-red-100">
+                            <h5 className="font-medium text-red-800 mb-1">{crop.name}</h5>
+                            <p className="text-sm text-red-700">{crop.reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 md:col-span-2 lg:col-span-1">
-                    <h4 className="font-medium text-green-900 mb-2 text-sm sm:text-base">Optimal Planting</h4>
-                    <p className="text-xs sm:text-sm text-green-800 mb-3">
-                      Perfect conditions for planting maize and cassava. Soil moisture is ideal.
-                    </p>
-                    <Button size="sm" variant="outline" className="text-xs w-full sm:w-auto">
-                      Plan Planting
-                    </Button>
+
+                  {/* Farming Systems Recommendations */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-3 flex items-center">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Recommended Farming Systems
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {getFarmingSystemRecommendations(realTimeWeather).map((system, index) => (
+                        <div key={index} className="bg-white rounded-lg p-3 border border-blue-100">
+                          <h5 className="font-medium text-blue-800 mb-1">{system.name}</h5>
+                          <p className="text-sm text-blue-700">{system.description}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -811,7 +1018,15 @@ export default function WeatherPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium mb-2">Select Ghana Region</label>
-                    <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <Select 
+                      value={selectedLocation} 
+                      onValueChange={(value) => {
+                        setSelectedLocation(value);
+                        setUserLocation(null); // Clear any GPS location
+                        const location = getLocationCoordinates(value);
+                        loadForecastData();
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose your location in Ghana" />
                       </SelectTrigger>
