@@ -40,9 +40,55 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Initialize empty state values
-  const activeCrops = 0;
-  const averageHealth = 0;
-  const daysToNextHarvest = 0;
+  // Calculate dashboard metrics
+  const dummyCrops: DatabaseCrop[] = [
+    {
+      id: '1',
+      field_id: 'field1',
+      crop_type_id: 'maize',
+      planting_date: '2025-06-15',
+      expected_harvest_date: '2025-09-15',
+      status: 'growing',
+      health_score: 88,
+      progress_percentage: 65,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: '2',
+      field_id: 'field2',
+      crop_type_id: 'cassava',
+      planting_date: '2025-07-01',
+      expected_harvest_date: '2025-10-01',
+      status: 'growing',
+      health_score: 92,
+      progress_percentage: 40,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: '3',
+      field_id: 'field3',
+      crop_type_id: 'rice',
+      planting_date: '2025-05-30',
+      expected_harvest_date: '2025-08-30',
+      status: 'growing',
+      health_score: 95,
+      progress_percentage: 85,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
+
+  const activeCrops = dummyCrops.length;
+  const averageHealth = Math.round(dummyCrops.reduce((sum, crop) => sum + crop.health_score, 0) / dummyCrops.length);
+  const daysToNextHarvest = Math.min(...dummyCrops
+    .filter(crop => crop.expected_harvest_date)
+    .map(crop => {
+      const today = new Date();
+      const harvest = new Date(crop.expected_harvest_date!);
+      return Math.ceil((harvest.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    }));
 
   const getPriorityColor = (priority: Advisory['priority']) => {
     switch (priority) {
