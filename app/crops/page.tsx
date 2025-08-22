@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { weatherPredictionsAPI, type WeatherPrediction } from '@/services/weather-predictions';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -46,6 +47,7 @@ export default function CropsPage() {
   const { user } = useAuth();
   const [crops, setCrops] = useState<Crop[]>([]);
   const [sensors, setSensors] = useState<IoTSensor[]>(dummyIoTSensors);
+  const [weatherPredictions, setWeatherPredictions] = useState<WeatherPrediction[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddCropOpen, setIsAddCropOpen] = useState(false);
   const [isAddSensorOpen, setIsAddSensorOpen] = useState(false);
@@ -76,7 +78,17 @@ export default function CropsPage() {
     loadCropsData();
     loadSensorsData();
     loadWeatherData();
+    loadWeatherPredictions();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadWeatherPredictions = async () => {
+    try {
+      const predictions = await weatherPredictionsAPI.getLatestPredictions();
+      setWeatherPredictions(predictions);
+    } catch (error) {
+      console.error('Error loading weather predictions:', error);
+    }
+  };
 
   // Reload weather when city changes
   useEffect(() => {
@@ -928,12 +940,12 @@ const loadCropsData = async () => {
               </Dialog>
             </div>
 
-            {/* IoT Stats */}
+            {/* Weather Predictions Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
-                    <Wifi className="w-5 h-5 text-blue-600" />
+                    <Thermometer className="w-5 h-5 text-red-600" />
                     <div>
                       <p className="text-2xl font-bold">{filteredSensors.length}</p>
                       <p className="text-sm text-gray-600">Total Sensors</p>
