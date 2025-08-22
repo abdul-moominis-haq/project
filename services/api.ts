@@ -188,66 +188,117 @@ export const weatherAPI = {
 // Crops API calls
 export const cropsAPI = {
   // Get all crops for user
-  getCrops: async (userId: any) => {
-    const { data, error } = await supabase
-      .from("crops")
-      .select("*")
-      .eq("user_id", userId);
+  getCrops: async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("crops")
+        .select("*")
+        .eq("user_id", userId);
 
-    if (error) throw error;
-    return data as Crop[];
+      if (error) {
+        console.error('Error in getCrops:', error);
+        throw error;
+      }
+      return data as Crop[];
+    } catch (err) {
+      console.error('Failed to get crops:', err);
+      throw err;
+    }
   },
 
   // Create new crop
- // Create new crop
-createCrop: async (cropData: Partial<Crop>) => {
-  // const { data: { user } } = await supabase.auth.getUser();
-  // if (!user) throw new Error("User not authenticated");
-  const { data, error } = await supabase
-    .from("crops")
-    .insert([
-      {
-        ...cropData,
-        // user_id: user.id,  // ✅ correct UUID
-      },
-    ])
-    .select()
-    .single();
+  createCrop: async (cropData: Partial<Crop>) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
 
-  if (error) throw error;
-  return data as Crop;
-},
+      const { data, error } = await supabase
+        .from("crops")
+        .insert([
+          {
+            ...cropData,
+            user_id: user.id,  // Using user_id for crops table
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error in createCrop:', error);
+        throw error;
+      }
+      return data as Crop;
+    } catch (err) {
+      console.error('Failed to create crop:', err);
+      throw err;
+    }
+  },
 
 
   // Update crop
   updateCrop: async (cropId: string, cropData: Partial<Crop>) => {
-    // const response = await api.put(`/crops/${cropId}`, cropData);
-    // return response.data;
-    
-    // Using dummy data for now
-    return { id: cropId, ...cropData };
+    try {
+      const { data, error } = await supabase
+        .from("crops")
+        .update(cropData)
+        .eq("id", cropId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error in updateCrop:', error);
+        throw error;
+      }
+      return data as Crop;
+    } catch (err) {
+      console.error('Failed to update crop:', err);
+      throw err;
+    }
   },
 
   // Delete crop
   deleteCrop: async (cropId: string) => {
-    // await api.delete(`/crops/${cropId}`);
-    
-    // Using dummy data for now
-    return { success: true };
+    try {
+      const { error } = await supabase
+        .from("crops")
+        .delete()
+        .eq("id", cropId);
+
+      if (error) {
+        console.error('Error in deleteCrop:', error);
+        throw error;
+      }
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to delete crop:', err);
+      throw err;
+    }
   },
 
   // Get crop analytics
   getCropAnalytics: async (cropId: string) => {
-    // const response = await api.get(`/crops/${cropId}/analytics`);
-    // return response.data;
-    
-    // Using dummy data for now
-    return {
-      growthRate: 85,
-      healthTrend: 'improving',
-      yieldPrediction: 4.2,
-      recommendations: ['Increase watering', 'Apply fertilizer']
-    };
+    try {
+      const { data, error } = await supabase
+        .from("crop_analytics")
+        .select("*")
+        .eq("crop_id", cropId)
+        .single();
+
+      if (error) {
+        console.error('Error in getCropAnalytics:', error);
+        throw error;
+      }
+      
+      return {
+        growthRate: data?.growth_rate ?? 85,
+        healthTrend: data?.health_trend ?? 'improving',
+        yieldPrediction: data?.yield_prediction ?? 4.2,
+        recommendations: data?.recommendations ?? ['Increase watering', 'Apply fertilizer']
+      };
+    } catch (err) {
+      console.error('Failed to get crop analytics:', err);
+      throw err;
+    }
   }
 };
 

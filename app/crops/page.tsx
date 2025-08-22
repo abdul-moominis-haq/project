@@ -76,11 +76,13 @@ export default function CropsPage() {
 
   // Load data on component mount
   useEffect(() => {
-    loadCropsData();
-    loadSensorsData();
-    loadWeatherData();
-    loadWeatherPredictions();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (user?.id) {
+      loadCropsData();
+      loadSensorsData();
+      loadWeatherData();
+      loadWeatherPredictions();
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadWeatherPredictions = async () => {
     try {
@@ -88,6 +90,10 @@ export default function CropsPage() {
       setWeatherPredictions(predictions);
     } catch (error) {
       console.error('Error loading weather predictions:', error);
+      setAlertMessage({
+        type: 'error',
+        message: `Error loading weather predictions: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
     }
   };
 
@@ -121,12 +127,27 @@ export default function CropsPage() {
 const loadCropsData = async () => {
   setLoading(true);
   try {
-    
-   
-      const newCropData = await cropsAPI.getCrops(user?.id || '');
-   setCrops(newCropData);
-  } catch (error) {
-    console.error('Error loading crops:', error);
+    if (!user?.id) {
+      console.warn('No user ID available, cannot load crops');
+      return;
+    }
+
+    const newCropData = await cropsAPI.getCrops(user.id);
+    if (!newCropData) {
+      console.error('Failed to load crops data');
+      return;
+    }
+    setCrops(newCropData);
+  } catch (error: any) {
+    console.error('Error loading crops:', {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      name: error?.name,
+      stack: error?.stack
+    });
+    // You might want to set an error state here to show to the user
   } finally {
     setLoading(false);
   }

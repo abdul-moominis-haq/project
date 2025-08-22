@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '@/types';
 import { createClient } from '@/utils/supabase/client';
 import { localStorageService } from '@/services/local-storage';
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
   // Function to fetch profile data from database
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       // Initialize local storage for user
       localStorageService.initializeUser(userId);
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
 
       if (error) {
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .insert([
           {
-            user_id: userId,
+            id: userId,
             email: session.user.email,
             name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
             created_at: new Date().toISOString()
@@ -99,8 +99,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorageService.saveProfile(userId, newProfile);
       return newProfile;
 
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    } catch (error: any) {
+      console.error('Error fetching profile:', {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        name: error?.name,
+        stack: error?.stack
+      });
       
       // Fallback to cached profile
       const cachedProfile = localStorageService.getProfile(userId);
@@ -113,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       return null;
     }
-  };
+  }, [supabase]);
 
   const refreshProfile = async () => {
     if (supabaseUser) {
@@ -124,22 +131,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setSupabaseUser(session.user);
-        // Map Supabase user to your User type
-        const mappedUser: User = {
-          id: session.user.id,
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          location: session.user.user_metadata?.location || 'Unknown'
-        };
-        setUser(mappedUser);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        // Fetch profile data from database
-        await fetchProfile(session.user.id);
+        if (error) {
+          console.error('Error getting initial session:', {
+            message: error.message,
+            code: error.code
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          console.log('Found valid session for user:', session.user.id);
+          setSupabaseUser(session.user);
+          
+          // Map Supabase user to your User type
+          const mappedUser: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            location: session.user.user_metadata?.location || 'Unknown'
+          };
+          setUser(mappedUser);
+          
+          // Fetch profile data from database
+          await fetchProfile(session.user.id);
+        } else {
+          console.log('No active session found');
+        }
+      } catch (error: any) {
+        console.error('Unexpected error in getInitialSession:', {
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+          name: error?.name,
+          stack: error?.stack
+        });
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     getInitialSession();
@@ -169,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, [supabase, fetchProfile]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
