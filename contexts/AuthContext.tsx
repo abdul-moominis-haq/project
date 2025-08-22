@@ -54,40 +54,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(cachedProfile);
       }
 
-      const response = await fetch('/api/profile');
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.profile);
-        
-        // Save profile to local storage
-        localStorageService.saveProfile(userId, data.profile);
-        
-        return data.profile;
-      } else if (response.status === 404) {
-        // Profile doesn't exist - this should now be handled by the API
-        console.log('Profile not found (404), but should be auto-created');
-        setProfile(null);
-        return null;
-      } else {
-        // Other error - use cached profile if available
-        const errorData = await response.json();
-        console.error('Profile fetch error:', errorData);
-        
-        if (cachedProfile) {
-          console.log('Using cached profile due to API error');
-          return cachedProfile;
-        }
-        
-        setProfile(null);
-        return null;
+      // Check if we have a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No valid session');
       }
+
+      // Use Supabase client directly to fetch profile
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (profileData) {
+        setProfile(profileData);
+        localStorageService.saveProfile(userId, profileData);
+        return profileData;
+      }
+
+      // If no profile exists, create one
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            user_id: userId,
+            email: session.user.email,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single();
+
+      if (createError) {
+        throw createError;
+      }
+
+      setProfile(newProfile);
+      localStorageService.saveProfile(userId, newProfile);
+      return newProfile;
+
     } catch (error) {
       console.error('Error fetching profile:', error);
       
       // Fallback to cached profile
       const cachedProfile = localStorageService.getProfile(userId);
       if (cachedProfile) {
-        console.log('Using cached profile due to network error');
+        console.log('Using cached profile due to error, cached profile:', cachedProfile);
         setProfile(cachedProfile);
         return cachedProfile;
       }

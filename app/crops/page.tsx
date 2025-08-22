@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import { iotSensorsAPI } from '@/services/iot-sensors';
 import { localStorageService } from '@/services/local-storage';
 import openWeatherService, { ProcessedWeatherData, WeatherRecommendation } from '@/services/openweather-api';
 // Import API services (commented out for now)
@@ -132,22 +133,9 @@ const loadCropsData = async () => {
 };
 
 
-  const loadSensorsData = async () => {
-    try {
-      const response = await fetch('/api/iot-devices');
-      if (response.ok) {
-        const data = await response.json();
-        setSensors(data.devices || []);
-      } else {
-        console.error('Failed to load sensors:', await response.text());
-        // Fallback to dummy data
-        setSensors(dummyIoTSensors);
-      }
-    } catch (error) {
-      console.error('Error loading sensors:', error);
-      // Fallback to dummy data
-      setSensors(dummyIoTSensors);
-    }
+  const loadSensorsData = () => {
+    const sensors = iotSensorsAPI.getAllSensors();
+    setSensors(sensors);
   };
   
   const [newCrop, setNewCrop] = useState({
@@ -249,29 +237,20 @@ const loadCropsData = async () => {
     setLoading(true);
     
     try {
-      const sensorData = {
+      if (!newSensor.name || !newSensor.type || !newSensor.location) {
+        setAlertMessage({ type: 'error', message: 'Please fill in all required fields.' });
+        setLoading(false);
+        return;
+      }
+
+      const sensor = iotSensorsAPI.addSensor({
         name: newSensor.name,
         type: newSensor.type,
         location: newSensor.location
-      };
+      });
 
-      // API call (commented out for now)
-      // const newSensorData = await sensorsAPI.createSensor(sensorData);
-      // setSensors([...sensors, newSensorData]);
-
-      // Using dummy data for now
-      const sensor: IoTSensor = {
-        id: (sensors.length + 1).toString(),
-        ...sensorData,
-        batteryLevel: Math.floor(Math.random() * 100),
-        status: 'active',
-        lastReading: {
-          timestamp: new Date().toISOString(),
-          value: Math.floor(Math.random() * 100),
-          unit: newSensor.type === 'Temperature' ? '°C' : newSensor.type === 'Humidity' ? '%' : 'pH'
-        }
-      };
-      setSensors([...sensors, sensor]);
+      // Update the sensors list
+      setSensors(iotSensorsAPI.getAllSensors());
 
       // Reset form
       setNewSensor({
@@ -281,13 +260,23 @@ const loadCropsData = async () => {
       });
       setIsAddSensorOpen(false);
       setAlertMessage({type: 'success', message: `${sensor.name} has been added successfully!`});
-      setTimeout(() => setAlertMessage(null), 5000);
+      
+      // Start simulating readings for the new sensor
+      const simulationInterval = setInterval(() => {
+        const updatedSensor = iotSensorsAPI.simulateReading(sensor);
+        iotSensorsAPI.updateSensor(sensor.id, updatedSensor);
+        setSensors(iotSensorsAPI.getAllSensors());
+      }, 30000); // Update every 30 seconds
+
+      // Store the interval ID
+      window.localStorage.setItem(`sensor_${sensor.id}_interval`, simulationInterval.toString());
+
     } catch (error) {
       console.error('Error adding sensor:', error);
       setAlertMessage({type: 'error', message: 'Failed to add sensor. Please try again.'});
-      setTimeout(() => setAlertMessage(null), 5000);
     } finally {
       setLoading(false);
+      setTimeout(() => setAlertMessage(null), 5000);
     }
   };
 
@@ -325,19 +314,28 @@ const loadCropsData = async () => {
     setLoading(true);
     
     try {
-      // API call (commented out for now)
-      // await sensorsAPI.deleteSensor(sensorId);
+      // Stop the simulation interval
+      const intervalId = window.localStorage.getItem(`sensor_${sensorId}_interval`);
+      if (intervalId) {
+        clearInterval(parseInt(intervalId));
+        window.localStorage.removeItem(`sensor_${sensorId}_interval`);
+      }
+
+      // Delete from local storage
+      const success = iotSensorsAPI.deleteSensor(sensorId);
       
-      // Using dummy data for now
-      setSensors(sensors.filter(sensor => sensor.id !== sensorId));
-      setAlertMessage({type: 'success', message: `${sensorToDelete?.name} has been deleted successfully.`});
-      setTimeout(() => setAlertMessage(null), 5000);
+      if (success) {
+        setSensors(iotSensorsAPI.getAllSensors());
+        setAlertMessage({type: 'success', message: `${sensorToDelete?.name} has been deleted successfully.`});
+      } else {
+        throw new Error('Failed to delete sensor');
+      }
     } catch (error) {
       console.error('Error deleting sensor:', error);
       setAlertMessage({type: 'error', message: 'Failed to delete sensor. Please try again.'});
-      setTimeout(() => setAlertMessage(null), 5000);
     } finally {
       setLoading(false);
+      setTimeout(() => setAlertMessage(null), 5000);
     }
   };
 
