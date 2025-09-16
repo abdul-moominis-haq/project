@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SmartAgriSystemFlowchart version="1.0" type="System_Flow_Diagram">
+  
+  <!-- User Entry Points -->
+  <UserEntryPoints>
+    <EntryPoint id="web_browser" name="Web Browser" type="client">
+      <flow>
+        <step action="load" target="next_app" />
+      </flow>
+    </EntryPoint>
+    
+    <EntryPoint id="mobile_device" name="Mobile Device" type="client">
+      <flow>
+        <step action="access" target="next_app" />
+      </flow>
+    </EntryPoint>
+  </UserEntryPoints>
+
+  <!-- Frontend Application Flow -->
+  <FrontendFlow>
+    <Component id="next_app" name="Next.js Application" type="frontend_entry">
+      <flow>
+        <step condition="authenticated" action="redirect" target="dashboard" />
+        <step condition="unauthenticated" action="redirect" target="login_page" />
+        <step action="render" target="layout_component" />
+      </flow>
+    </Component>
+    
+    <Component id="layout_component" name="Layout System" type="layout">
+      <includes>
+        <component ref="header" />
+        <component ref="navbar" />
+        <component ref="sidebar" />
+        <component ref="footer" />
+      </includes>
+      <flow>
+        <step action="check_auth" target="auth_context" />
+        <step action="render_page" target="page_components" />
+      </flow>
+    </Component>
+    
+    <!-- Page Components Flow -->
+    <PageFlow>
+      <Page id="login_page" name="Login/Signup" type="auth_page">
+        <flow>
+          <step action="authenticate" target="supabase_auth" />
+          <step condition="success" action="redirect" target="dashboard" />
+          <step condition="error" action="show_error" target="ui_toast" />
+        </flow>
+      </Page>
+      
+      <Page id="dashboard" name="Dashboard" type="main_page">
+        <dependencies>
+          <component ref="stats_card" />
+          <component ref="weather_card" />
+          <component ref="crop_card" />
+        </dependencies>
+        <flow>
+          <step action="load_user_data" target="profile_api" />
+          <step action="load_weather_data" target="weather_api" />
+          <step action="load_farm_data" target="farms_api" />
+          <step action="render_dashboard" target="dashboard_components" />
+        </flow>
+      </Page>
+      
+      <Page id="weather_page" name="Weather" type="feature_page">
+        <dependencies>
+          <component ref="weather_charts" />
+          <component ref="weather_predictions" />
+        </dependencies>
+        <flow>
+          <step action="fetch_current_weather" target="openweather_api" />
+          <step action="get_predictions" target="weather_predictions_api" />
+          <step action="process_weather_data" target="weather_service" />
+          <step action="render_charts" target="weather_charts_component" />
+        </flow>
+      </Page>
+      
+      <Page id="crops_page" name="Crops" type="feature_page">
+        <dependencies>
+          <component ref="ai_crop_recommendations" />
+          <component ref="crop_interface" />
+        </dependencies>
+        <flow>
+          <step action="load_crop_types" target="crop_types_api" />
+          <step action="get_ai_recommendations" target="ai_service" />
+          <step action="load_user_crops" target="crops_api" />
+          <step action="render_recommendations" target="ai_crop_component" />
+        </flow>
+      </Page>
+      
+      <Page id="chat_page" name="AI Chat" type="interactive_page">
+        <dependencies>
+          <component ref="chatbot_ui" />
+        </dependencies>
+        <flow>
+          <step action="initialize_chat" target="chatbot_service" />
+          <step action="send_message" target="gemini_api" />
+          <step action="process_response" target="chat_api" />
+          <step action="update_ui" target="chatbot_component" />
+        </flow>
+      </Page>
+      
+      <Page id="community_page" name="Community" type="social_page">
+        <flow>
+          <step action="load_posts" target="community_api" />
+          <step action="render_posts" target="community_component" />
+          <step action="enable_interactions" target="posts_service" />
+        </flow>
+      </Page>
+      
+      <Page id="profile_page" name="Profile" type="user_page">
+        <dependencies>
+          <component ref="profile_settings" />
+        </dependencies>
+        <flow>
+          <step action="load_profile" target="profile_api" />
+          <step action="render_form" target="profile_component" />
+          <step action="handle_updates" target="profile_service" />
+        </flow>
+      </Page>
+      
+      <Page id="instruments_page" name="IoT Instruments" type="monitoring_page">
+        <flow>
+          <step action="load_devices" target="iot_devices_api" />
+          <step action="fetch_sensor_data" target="iot_service" />
+          <step action="render_monitoring" target="instruments_component" />
+        </flow>
+      </Page>
+    </PageFlow>
+  </FrontendFlow>
+
+  <!-- API Layer Flow -->
+  <APIFlow>
+    <APIEndpoint id="profile_api" name="Profile API" path="/api/profile">
+      <flow>
+        <step action="authenticate_request" target="supabase_auth" />
+        <step action="validate_data" target="profile_service" />
+        <step action="database_operation" target="supabase_db" />
+        <step action="return_response" target="frontend" />
+      </flow>
+    </APIEndpoint>
+    
+    <APIEndpoint id="weather_predictions_api" name="Weather Predictions API" path="/api/weather/predictions">
+      <flow>
+        <step action="receive_prediction_data" target="weather_service" />
+        <step action="process_ai_prediction" target="weather_predictions_service" />
+        <step action="store_predictions" target="supabase_db" />
+        <step action="return_forecast" target="frontend" />
+      </flow>
+    </APIEndpoint>
+    
+    <APIEndpoint id="crops_api" name="Crops API" path="/api/crops">
+      <flow>
+        <step action="authenticate_user" target="supabase_auth" />
+        <step action="load_user_crops" target="farms_service" />
+        <step action="query_database" target="supabase_db" />
+        <step action="return_crop_data" target="frontend" />
+      </flow>
+    </APIEndpoint>
+    
+    <APIEndpoint id="crop_recommendations_api" name="AI Crop Recommendations" path="/api/crops/recommendations">
+      <flow>
+        <step action="get_user_context" target="profile_service" />
+        <step action="fetch_weather_data" target="weather_service" />
+        <step action="generate_recommendations" target="ai_service" />
+        <step action="return_suggestions" target="frontend" />
+      </flow>
+    </APIEndpoint>
+    
+    <APIEndpoint id="chat_api" name="Chat API" path="/api/chat">
+      <flow>
+        <step action="receive_message" target="chatbot_service" />
+        <step action="process_context" target="ai_service" />
+        <step action="call_gemini" target="gemini_api" />
+        <step action="format_response" target="chatbot_service" />
+        <step action="return_answer" target="frontend" />
+      </flow>
+    </APIEndpoint>
+    
+    <APIEndpoint id="community_api" name="Community API" path="/api/community">
+      <flow>
+        <step action="authenticate_request" target="supabase_auth" />
+        <step action="validate_post_data" target="posts_service" />
+        <step action="store_post" target="supabase_db" />
+        <step action="notify_community" target="community_service" />
+      </flow>
+    </APIEndpoint>
+    
+    <APIEndpoint id="farms_api" name="Farms API" path="/api/farms">
+      <flow>
+        <step action="get_user_farms" target="farms_service" />
+        <step action="query_farm_data" target="supabase_db" />
+        <step action="aggregate_data" target="farms_service" />
+        <step action="return_farm_info" target="frontend" />
+      </flow>
+    </APIEndpoint>
+    
+    <APIEndpoint id="iot_devices_api" name="IoT Devices API" path="/api/iot-devices">
+      <flow>
+        <step action="authenticate_device" target="iot_service" />
+        <step action="fetch_sensor_data" target="iot_sensors_service" />
+        <step action="store_readings" target="supabase_db" />
+        <step action="return_device_status" target="frontend" />
+      </flow>
+    </APIEndpoint>
+  </APIFlow>
+
+  <!-- Service Layer Flow -->
+  <ServiceFlow>
+    <Service id="auth_context" name="Authentication Context" type="state_management">
+      <flow>
+        <step action="check_session" target="supabase_auth" />
+        <step action="manage_state" target="react_context" />
+        <step action="provide_auth_data" target="components" />
+      </flow>
+    </Service>
+    
+    <Service id="weather_service" name="Weather Service" type="business_logic">
+      <flow>
+        <step action="fetch_external_data" target="openweather_api" />
+        <step action="process_weather_data" target="ghana_weather_service" />
+        <step action="generate_forecasts" target="weather_predictions_service" />
+        <step action="cache_data" target="local_storage_service" />
+      </flow>
+    </Service>
+    
+    <Service id="ai_service" name="AI Service" type="ai_integration">
+      <dependencies>
+        <service ref="chatbot_service" />
+        <service ref="ai_crop_recommendations_service" />
+      </dependencies>
+      <flow>
+        <step action="prepare_context" target="context_processor" />
+        <step action="call_ai_model" target="gemini_api" />
+        <step action="process_response" target="response_formatter" />
+        <step action="return_ai_result" target="api_layer" />
+      </flow>
+    </Service>
+    
+    <Service id="farms_service" name="Farms Service" type="business_logic">
+      <flow>
+        <step action="manage_farm_data" target="supabase_db" />
+        <step action="track_crops" target="crops_service" />
+        <step action="monitor_conditions" target="iot_service" />
+        <step action="provide_insights" target="dashboard_service" />
+      </flow>
+    </Service>
+    
+    <Service id="posts_service" name="Community Posts Service" type="social_features">
+      <flow>
+        <step action="validate_content" target="content_validator" />
+        <step action="store_post" target="supabase_db" />
+        <step action="index_content" target="search_service" />
+        <step action="notify_users" target="notification_service" />
+      </flow>
+    </Service>
+    
+    <Service id="profile_service" name="Profile Service" type="user_management">
+      <flow>
+        <step action="manage_user_data" target="supabase_db" />
+        <step action="validate_profile" target="data_validator" />
+        <step action="sync_preferences" target="settings_service" />
+        <step action="update_context" target="auth_context" />
+      </flow>
+    </Service>
+    
+    <Service id="iot_service" name="IoT Service" type="hardware_integration">
+      <flow>
+        <step action="collect_sensor_data" target="iot_sensors_service" />
+        <step action="process_readings" target="data_processor" />
+        <step action="detect_anomalies" target="monitoring_service" />
+        <step action="trigger_alerts" target="alert_service" />
+      </flow>
+    </Service>
+  </ServiceFlow>
+
+  <!-- External API Integration Flow -->
+  <ExternalAPIFlow>
+    <ExternalAPI id="gemini_api" name="Google Gemini AI" type="ai_service">
+      <flow>
+        <step action="authenticate" target="google_api" />
+        <step action="send_prompt" target="gemini_model" />
+        <step action="receive_response" target="ai_service" />
+        <step action="handle_errors" target="error_handler" />
+      </flow>
+    </ExternalAPI>
+    
+    <ExternalAPI id="openweather_api" name="OpenWeatherMap API" type="weather_service">
+      <flow>
+        <step action="authenticate" target="openweather_service" />
+        <step action="fetch_current_weather" target="weather_endpoint" />
+        <step action="fetch_forecast" target="forecast_endpoint" />
+        <step action="process_data" target="weather_service" />
+      </flow>
+    </ExternalAPI>
+  </ExternalAPIFlow>
+
+  <!-- Database Flow -->
+  <DatabaseFlow>
+    <Database id="supabase_db" name="Supabase PostgreSQL" type="primary_database">
+      <tables>
+        <table name="profiles" operations="CRUD" />
+        <table name="farms" operations="CRUD" />
+        <table name="crops" operations="CRUD" />
+        <table name="crop_types" operations="READ" />
+        <table name="weather_data" operations="CREATE,READ" />
+        <table name="weather_predictions" operations="CREATE,READ" />
+        <table name="community_posts" operations="CRUD" />
+        <table name="iot_devices" operations="CRUD" />
+        <table name="sensor_readings" operations="CREATE,READ" />
+      </tables>
+      
+      <flow>
+        <step action="authenticate_request" target="rls_policies" />
+        <step action="validate_permissions" target="row_level_security" />
+        <step action="execute_query" target="postgresql_engine" />
+        <step action="return_data" target="api_layer" />
+      </flow>
+    </Database>
+    
+    <Authentication id="supabase_auth" name="Supabase Auth" type="auth_service">
+      <flow>
+        <step action="handle_login" target="auth_provider" />
+        <step action="generate_jwt" target="token_service" />
+        <step action="manage_session" target="session_manager" />
+        <step action="enforce_security" target="rls_policies" />
+      </flow>
+    </Authentication>
+  </DatabaseFlow>
+
+  <!-- Data Processing Flow -->
+  <DataProcessingFlow>
+    <Processor id="weather_data_processor" name="Weather Data Processor" type="data_transformation">
+      <flow>
+        <step action="normalize_data" target="data_normalizer" />
+        <step action="validate_ranges" target="data_validator" />
+        <step action="calculate_predictions" target="ml_predictor" />
+        <step action="store_results" target="supabase_db" />
+      </flow>
+    </Processor>
+    
+    <Processor id="ai_response_processor" name="AI Response Processor" type="nlp_processing">
+      <flow>
+        <step action="parse_response" target="response_parser" />
+        <step action="extract_insights" target="insight_extractor" />
+        <step action="format_output" target="output_formatter" />
+        <step action="return_processed_data" target="frontend" />
+      </flow>
+    </Processor>
+    
+    <Processor id="sensor_data_processor" name="Sensor Data Processor" type="iot_processing">
+      <flow>
+        <step action="validate_sensor_data" target="data_validator" />
+        <step action="aggregate_readings" target="data_aggregator" />
+        <step action="detect_patterns" target="pattern_detector" />
+        <step action="generate_alerts" target="alert_generator" />
+      </flow>
+    </Processor>
+  </DataProcessingFlow>
+
+  <!-- Error Handling and Monitoring Flow -->
+  <ErrorHandlingFlow>
+    <ErrorHandler id="global_error_handler" name="Global Error Handler" type="error_management">
+      <flow>
+        <step action="catch_errors" target="error_boundary" />
+        <step action="log_errors" target="logging_service" />
+        <step action="notify_user" target="ui_toast" />
+        <step action="attempt_recovery" target="recovery_service" />
+      </flow>
+    </ErrorHandler>
+    
+    <Monitor id="system_monitor" name="System Monitor" type="performance_monitoring">
+      <flow>
+        <step action="track_performance" target="metrics_collector" />
+        <step action="monitor_apis" target="api_health_checker" />
+        <step action="check_database" target="db_health_checker" />
+        <step action="generate_reports" target="monitoring_dashboard" />
+      </flow>
+    </Monitor>
+  </ErrorHandlingFlow>
+
+  <!-- User Interaction Flow Patterns -->
+  <InteractionPatterns>
+    <Pattern id="dashboard_interaction" name="Dashboard Interaction">
+      <flow>
+        <step user_action="page_load" system_response="load_dashboard_data" />
+        <step user_action="click_weather_card" system_response="navigate_to_weather" />
+        <step user_action="click_crop_card" system_response="navigate_to_crops" />
+        <step user_action="view_stats" system_response="show_detailed_analytics" />
+      </flow>
+    </Pattern>
+    
+    <Pattern id="chat_interaction" name="AI Chat Interaction">
+      <flow>
+        <step user_action="type_message" system_response="validate_input" />
+        <step user_action="send_message" system_response="process_with_ai" />
+        <step user_action="receive_response" system_response="display_formatted_answer" />
+        <step user_action="ask_followup" system_response="maintain_context" />
+      </flow>
+    </Pattern>
+    
+    <Pattern id="weather_interaction" name="Weather Interaction">
+      <flow>
+        <step user_action="view_current_weather" system_response="fetch_live_data" />
+        <step user_action="request_forecast" system_response="generate_predictions" />
+        <step user_action="view_charts" system_response="render_visualizations" />
+        <step user_action="export_data" system_response="prepare_download" />
+      </flow>
+    </Pattern>
+    
+    <Pattern id="crop_management_interaction" name="Crop Management Interaction">
+      <flow>
+        <step user_action="add_crop" system_response="validate_and_store" />
+        <step user_action="request_recommendations" system_response="generate_ai_suggestions" />
+        <step user_action="update_crop_status" system_response="sync_farm_data" />
+        <step user_action="view_crop_analytics" system_response="display_growth_insights" />
+      </flow>
+    </Pattern>
+  </InteractionPatterns>
+
+  <!-- Security and Authentication Flow -->
+  <SecurityFlow>
+    <SecurityLayer id="authentication_layer" name="Authentication Layer">
+      <flow>
+        <step action="verify_credentials" target="supabase_auth" />
+        <step action="generate_session" target="jwt_token_service" />
+        <step action="apply_rls_policies" target="database_security" />
+        <step action="authorize_requests" target="middleware" />
+      </flow>
+    </SecurityLayer>
+    
+    <SecurityLayer id="data_protection_layer" name="Data Protection Layer">
+      <flow>
+        <step action="encrypt_sensitive_data" target="encryption_service" />
+        <step action="validate_input" target="input_sanitizer" />
+        <step action="check_permissions" target="rbac_system" />
+        <step action="audit_access" target="audit_logger" />
+      </flow>
+    </SecurityLayer>
+  </SecurityFlow>
+
+  <!-- Development and Testing Flow -->
+  <DevelopmentFlow>
+    <TestingSuite id="testing_framework" name="Testing Framework">
+      <testTypes>
+        <test type="supabase_tests" target="database_functionality" />
+        <test type="weather_tests" target="weather_prediction_accuracy" />
+        <test type="ai_tests" target="chatbot_functionality" />
+        <test type="production_tests" target="system_integration" />
+      </testTypes>
+      
+      <flow>
+        <step action="run_unit_tests" target="component_tests" />
+        <step action="run_integration_tests" target="api_tests" />
+        <step action="run_e2e_tests" target="user_flow_tests" />
+        <step action="generate_reports" target="test_reporter" />
+      </flow>
+    </TestingSuite>
+    
+    <DeploymentPipeline id="deployment_flow" name="Deployment Pipeline">
+      <flow>
+        <step action="code_commit" target="git_repository" />
+        <step action="run_tests" target="ci_pipeline" />
+        <step action="build_application" target="build_system" />
+        <step action="deploy_to_production" target="hosting_platform" />
+      </flow>
+    </DeploymentPipeline>
+  </DevelopmentFlow>
+
+  <!-- System Performance and Optimization -->
+  <PerformanceFlow>
+    <Optimization id="performance_optimizer" name="Performance Optimizer">
+      <flow>
+        <step action="monitor_load_times" target="performance_monitor" />
+        <step action="optimize_database_queries" target="query_optimizer" />
+        <step action="implement_caching" target="cache_layer" />
+        <step action="compress_assets" target="asset_optimizer" />
+      </flow>
+    </Optimization>
+    
+    <Caching id="cache_system" name="Caching System">
+      <flow>
+        <step action="cache_api_responses" target="redis_cache" />
+        <step action="cache_static_assets" target="cdn_cache" />
+        <step action="cache_database_queries" target="query_cache" />
+        <step action="invalidate_stale_cache" target="cache_manager" />
+      </flow>
+    </Caching>
+  </PerformanceFlow>
+
+</SmartAgriSystemFlowchart>

@@ -1,0 +1,991 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SmartAgriSystemArchitecture version="2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
+  <!-- System Metadata -->
+  <SystemInfo>
+    <Name>SmartAgri Platform</Name>
+    <Version>1.0.0</Version>
+    <Description>Intelligent Agricultural Management System with AI-powered insights</Description>
+    <Architecture>Microservices with Monolithic Frontend</Architecture>
+    <CreatedDate>2025-09-04</CreatedDate>
+    <Technologies>
+      <Primary>Next.js, TypeScript, Supabase, Google Gemini AI</Primary>
+      <Secondary>TailwindCSS, PostgreSQL, OpenWeatherMap API</Secondary>
+    </Technologies>
+  </SystemInfo>
+
+  <!-- System Layers Architecture -->
+  <SystemLayers>
+    
+    <!-- Presentation Layer -->
+    <Layer name="Presentation" level="1" type="Frontend">
+      <Description>User interface and user experience components</Description>
+      
+      <Components>
+        <ComponentGroup name="Application_Shell">
+          <Component name="NextJS_App" type="application_root">
+            <Files>
+              <File path="app/layout.tsx" role="root_layout" />
+              <File path="app/page.tsx" role="home_page" />
+              <File path="app/globals.css" role="global_styles" />
+              <File path="app/not-found.tsx" role="error_page" />
+            </Files>
+            <Dependencies>
+              <Dependency type="framework" name="Next.js 14" />
+              <Dependency type="language" name="TypeScript" />
+              <Dependency type="styling" name="Tailwind CSS" />
+            </Dependencies>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Layout_Components">
+          <Component name="Header" type="navigation">
+            <File path="components/layout/Header.tsx" />
+            <Responsibilities>
+              <Responsibility>Brand display</Responsibility>
+              <Responsibility>User authentication status</Responsibility>
+              <Responsibility>Quick navigation</Responsibility>
+            </Responsibilities>
+          </Component>
+          
+          <Component name="Navbar" type="navigation">
+            <File path="components/layout/Navbar.tsx" />
+            <Responsibilities>
+              <Responsibility>Primary navigation menu</Responsibility>
+              <Responsibility>Mobile responsive navigation</Responsibility>
+            </Responsibilities>
+          </Component>
+          
+          <Component name="Sidebar" type="navigation">
+            <File path="components/layout/Sidebar.tsx" />
+            <Responsibilities>
+              <Responsibility>Secondary navigation</Responsibility>
+              <Responsibility>Quick access tools</Responsibility>
+            </Responsibilities>
+          </Component>
+          
+          <Component name="Footer" type="information">
+            <File path="components/layout/Footer.tsx" />
+            <Responsibilities>
+              <Responsibility>Legal information</Responsibility>
+              <Responsibility>Contact details</Responsibility>
+            </Responsibilities>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Feature_Pages">
+          <Component name="Dashboard" type="analytics_page">
+            <File path="app/dashboard/page.tsx" />
+            <Dependencies>
+              <Component ref="StatsCard" />
+              <Component ref="WeatherCard" />
+              <Component ref="CropCard" />
+            </Dependencies>
+            <DataSources>
+              <Source api="/api/profile" />
+              <Source api="/api/farms" />
+              <Source api="/api/weather" />
+            </DataSources>
+          </Component>
+          
+          <Component name="Weather" type="data_visualization_page">
+            <File path="app/weather/page.tsx" />
+            <Dependencies>
+              <Component ref="WeatherCharts" />
+              <Component ref="WeatherPredictionsTab" />
+            </Dependencies>
+            <DataSources>
+              <Source api="/api/weather/predictions" />
+              <Source external="OpenWeatherMap" />
+            </DataSources>
+          </Component>
+          
+          <Component name="Crops" type="management_page">
+            <File path="app/crops/page.tsx" />
+            <Dependencies>
+              <Component ref="AICropRecommendations" />
+              <Component ref="AICropRecommendationInterface" />
+            </Dependencies>
+            <DataSources>
+              <Source api="/api/crops" />
+              <Source api="/api/crops/recommendations" />
+              <Source api="/api/crop-types" />
+            </DataSources>
+          </Component>
+          
+          <Component name="Chat" type="interactive_page">
+            <File path="app/chat/page.tsx" />
+            <Dependencies>
+              <Component ref="Chatbot" />
+            </Dependencies>
+            <DataSources>
+              <Source api="/api/chat" />
+              <Source external="Google_Gemini" />
+            </DataSources>
+          </Component>
+          
+          <Component name="Community" type="social_page">
+            <File path="app/community/page.tsx" />
+            <DataSources>
+              <Source api="/api/community" />
+            </DataSources>
+          </Component>
+          
+          <Component name="Profile" type="user_management_page">
+            <File path="app/profile/page.tsx" />
+            <Dependencies>
+              <Component ref="ProfileSettings" />
+            </Dependencies>
+            <DataSources>
+              <Source api="/api/profile" />
+            </DataSources>
+          </Component>
+          
+          <Component name="Instruments" type="monitoring_page">
+            <File path="app/instruments/page.tsx" />
+            <DataSources>
+              <Source api="/api/iot-devices" />
+            </DataSources>
+          </Component>
+          
+          <Component name="Authentication" type="auth_pages">
+            <Files>
+              <File path="app/login/page.tsx" role="login" />
+              <File path="app/signup/page.tsx" role="registration" />
+            </Files>
+            <DataSources>
+              <Source service="Supabase_Auth" />
+            </DataSources>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="UI_Components">
+          <Component name="Dashboard_Components" type="data_display">
+            <Files>
+              <File path="components/dashboard/StatsCard.tsx" />
+              <File path="components/dashboard/WeatherCard.tsx" />
+              <File path="components/dashboard/CropCard.tsx" />
+            </Files>
+          </Component>
+          
+          <Component name="Weather_Components" type="data_visualization">
+            <Files>
+              <File path="components/weather/WeatherCharts.tsx" />
+              <File path="components/weather/WeatherPredictionsTab.tsx" />
+            </Files>
+          </Component>
+          
+          <Component name="Crop_Components" type="ai_interface">
+            <Files>
+              <File path="components/crops/AICropRecommendations.tsx" />
+              <File path="components/crops/AICropRecommendationInterface.tsx" />
+            </Files>
+          </Component>
+          
+          <Component name="Profile_Components" type="form_interface">
+            <File path="components/profile/ProfileSettings.tsx" />
+          </Component>
+          
+          <Component name="Common_UI" type="reusable_components">
+            <Files>
+              <File path="components/ui/button.tsx" />
+              <File path="components/ui/card.tsx" />
+              <File path="components/ui/chart.tsx" />
+              <File path="components/ui/chatbot.tsx" />
+              <File path="components/ui/loading-spinner.tsx" />
+              <File path="components/ui/search-bar.tsx" />
+              <File path="components/ui/input.tsx" />
+              <File path="components/ui/form.tsx" />
+              <File path="components/ui/dialog.tsx" />
+              <File path="components/ui/toast.tsx" />
+            </Files>
+          </Component>
+        </ComponentGroup>
+      </Components>
+
+      <StateManagement>
+        <Context name="AuthContext" type="global_state">
+          <File path="contexts/AuthContext.tsx" />
+          <Purpose>Manage user authentication state across application</Purpose>
+          <Provides>
+            <State name="user" type="User | null" />
+            <State name="session" type="Session | null" />
+            <Function name="signIn" />
+            <Function name="signOut" />
+            <Function name="signUp" />
+          </Provides>
+        </Context>
+        
+        <Hooks>
+          <Hook name="useAuth" file="hooks/useAuth.tsx" purpose="Authentication logic" />
+          <Hook name="useToast" file="hooks/use-toast.ts" purpose="Notification system" />
+          <Hook name="useApiCall" file="hooks/useApiCall.ts" purpose="API request handling" />
+          <Hook name="useWeatherPredictions" file="hooks/useWeatherPredictions.ts" purpose="Weather data management" />
+          <Hook name="useAICropRecommendations" file="hooks/useAICropRecommendations.ts" purpose="AI recommendations" />
+        </Hooks>
+      </StateManagement>
+
+      <Routing>
+        <RouteStructure type="App_Router">
+          <Route path="/" component="page.tsx" />
+          <Route path="/dashboard" component="dashboard/page.tsx" protected="true" />
+          <Route path="/weather" component="weather/page.tsx" protected="true" />
+          <Route path="/crops" component="crops/page.tsx" protected="true" />
+          <Route path="/chat" component="chat/page.tsx" protected="true" />
+          <Route path="/community" component="community/page.tsx" protected="true" />
+          <Route path="/profile" component="profile/page.tsx" protected="true" />
+          <Route path="/instruments" component="instruments/page.tsx" protected="true" />
+          <Route path="/login" component="login/page.tsx" protected="false" />
+          <Route path="/signup" component="signup/page.tsx" protected="false" />
+        </RouteStructure>
+      </Routing>
+    </Layer>
+
+    <!-- API Layer -->
+    <Layer name="API" level="2" type="Backend">
+      <Description>RESTful API endpoints and business logic controllers</Description>
+      
+      <Components>
+        <ComponentGroup name="API_Routes">
+          <Component name="Profile_API" type="user_management">
+            <Endpoints>
+              <Endpoint method="GET" path="/api/profile" purpose="Get user profile" />
+              <Endpoint method="PUT" path="/api/profile" purpose="Update user profile" />
+              <Endpoint method="POST" path="/api/profile" purpose="Create user profile" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/profile/route.ts" />
+              <File path="app/api/profile/route-simple.ts" backup="true" />
+              <File path="app/api/profile/route-broken.ts" legacy="true" />
+            </Files>
+            <Dependencies>
+              <Service name="ProfileService" />
+              <Database name="Supabase" table="profiles" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="Weather_API" type="data_processing">
+            <Endpoints>
+              <Endpoint method="POST" path="/api/weather/predictions" purpose="Process weather predictions" />
+              <Endpoint method="GET" path="/api/weather" purpose="Get current weather data" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/weather/predictions/route.ts" />
+            </Files>
+            <Dependencies>
+              <Service name="WeatherService" />
+              <ExternalAPI name="OpenWeatherMap" />
+              <Database name="Supabase" table="weather_data" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="Crops_API" type="agricultural_management">
+            <Endpoints>
+              <Endpoint method="GET" path="/api/crops" purpose="Get user crops" />
+              <Endpoint method="POST" path="/api/crops" purpose="Add new crop" />
+              <Endpoint method="PUT" path="/api/crops" purpose="Update crop information" />
+              <Endpoint method="GET" path="/api/crop-types" purpose="Get available crop types" />
+              <Endpoint method="POST" path="/api/crops/recommendations" purpose="Get AI crop recommendations" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/crops/route.ts" />
+              <File path="app/api/crop-types/route.ts" />
+              <File path="app/api/crops/recommendations/route.ts" />
+            </Files>
+            <Dependencies>
+              <Service name="CropService" />
+              <Service name="AIService" />
+              <Database name="Supabase" table="crops,crop_types" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="Chat_API" type="ai_interaction">
+            <Endpoints>
+              <Endpoint method="POST" path="/api/chat" purpose="AI chatbot interaction" />
+              <Endpoint method="GET" path="/api/chat/test" purpose="Test chatbot connection" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/chat/route.ts" />
+              <File path="app/api/chat/test/route.ts" />
+            </Files>
+            <Dependencies>
+              <Service name="ChatbotService" />
+              <ExternalAPI name="Google_Gemini" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="Community_API" type="social_features">
+            <Endpoints>
+              <Endpoint method="GET" path="/api/community" purpose="Get community posts" />
+              <Endpoint method="POST" path="/api/community" purpose="Create community post" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/community/route.ts" />
+            </Files>
+            <Dependencies>
+              <Service name="CommunityService" />
+              <Database name="Supabase" table="community_posts" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="Farms_API" type="farm_management">
+            <Endpoints>
+              <Endpoint method="GET" path="/api/farms" purpose="Get farm information" />
+              <Endpoint method="POST" path="/api/farms" purpose="Create farm record" />
+              <Endpoint method="PUT" path="/api/farms" purpose="Update farm information" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/farms/route.ts" />
+            </Files>
+            <Dependencies>
+              <Service name="FarmService" />
+              <Database name="Supabase" table="farms" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="IoT_API" type="hardware_integration">
+            <Endpoints>
+              <Endpoint method="GET" path="/api/iot-devices" purpose="Get IoT device data" />
+              <Endpoint method="POST" path="/api/iot-devices" purpose="Register IoT device" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/iot-devices/route.ts" />
+            </Files>
+            <Dependencies>
+              <Service name="IoTService" />
+              <Database name="Supabase" table="iot_devices,sensor_readings" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="Debug_API" type="development_tools">
+            <Endpoints>
+              <Endpoint method="GET" path="/api/debug" purpose="System debugging" />
+              <Endpoint method="GET" path="/api/test" purpose="General testing" />
+            </Endpoints>
+            <Files>
+              <File path="app/api/debug/route.ts" />
+              <File path="app/api/test/route.ts" />
+            </Files>
+          </Component>
+        </ComponentGroup>
+
+        <Middleware>
+          <Component name="Authentication_Middleware" type="security">
+            <File path="middleware.ts" />
+            <Purpose>Protect routes and validate authentication</Purpose>
+            <Dependencies>
+              <Service name="Supabase_Auth" />
+            </Dependencies>
+          </Component>
+          
+          <Component name="Supabase_Middleware" type="database_integration">
+            <File path="utils/supabase/middleware.ts" />
+            <Purpose>Handle Supabase session management</Purpose>
+          </Component>
+        </Middleware>
+      </Components>
+    </Layer>
+
+    <!-- Service Layer -->
+    <Layer name="Service" level="3" type="Business_Logic">
+      <Description>Business logic, data processing, and external service integration</Description>
+      
+      <Components>
+        <ComponentGroup name="Core_Services">
+          <Component name="Authentication_Service" type="security">
+            <Files>
+              <File path="utils/supabase/client.ts" role="client_config" />
+              <File path="utils/supabase/server.ts" role="server_config" />
+            </Files>
+            <Purpose>Handle user authentication and session management</Purpose>
+            <Capabilities>
+              <Capability>User registration</Capability>
+              <Capability>User login/logout</Capability>
+              <Capability>Session management</Capability>
+              <Capability>JWT token handling</Capability>
+            </Capabilities>
+          </Component>
+          
+          <Component name="Profile_Service" type="user_management">
+            <File path="services/profiles-new.ts" />
+            <Purpose>Manage user profiles and preferences</Purpose>
+            <Capabilities>
+              <Capability>Profile CRUD operations</Capability>
+              <Capability>Profile validation</Capability>
+              <Capability>Preference management</Capability>
+            </Capabilities>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Agricultural_Services">
+          <Component name="Farm_Service" type="farm_management">
+            <Files>
+              <File path="services/farms.ts" />
+              <File path="services/farms-new.ts" />
+            </Files>
+            <Purpose>Manage farm data and operations</Purpose>
+            <Capabilities>
+              <Capability>Farm registration</Capability>
+              <Capability>Crop tracking</Capability>
+              <Capability>Yield management</Capability>
+              <Capability>Farm analytics</Capability>
+            </Capabilities>
+          </Component>
+          
+          <Component name="Crop_Service" type="crop_management">
+            <Purpose>Handle crop-related operations and data</Purpose>
+            <Capabilities>
+              <Capability>Crop lifecycle tracking</Capability>
+              <Capability>Growth monitoring</Capability>
+              <Capability>Harvest planning</Capability>
+            </Capabilities>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Weather_Services">
+          <Component name="Weather_API_Service" type="external_integration">
+            <Files>
+              <File path="services/weather-api.ts" />
+              <File path="services/openweather-api.ts" />
+            </Files>
+            <Purpose>Interface with external weather APIs</Purpose>
+            <ExternalDependencies>
+              <Dependency name="OpenWeatherMap_API" />
+            </ExternalDependencies>
+          </Component>
+          
+          <Component name="Weather_Data_Service" type="data_processing">
+            <Files>
+              <File path="services/weather-data.ts" />
+              <File path="services/weather-forecast.ts" />
+              <File path="services/weather-history.ts" />
+            </Files>
+            <Purpose>Process and analyze weather data</Purpose>
+            <Capabilities>
+              <Capability>Data normalization</Capability>
+              <Capability>Forecast generation</Capability>
+              <Capability>Historical analysis</Capability>
+            </Capabilities>
+          </Component>
+          
+          <Component name="Weather_Predictions_Service" type="ai_processing">
+            <File path="services/weather-predictions.ts" />
+            <Purpose>Generate AI-powered weather predictions</Purpose>
+            <Capabilities>
+              <Capability>Machine learning predictions</Capability>
+              <Capability>Pattern recognition</Capability>
+              <Capability>Accuracy validation</Capability>
+            </Capabilities>
+          </Component>
+          
+          <Component name="Ghana_Weather_Service" type="localized_service">
+            <Files>
+              <File path="services/ghana-weather.ts" />
+              <File path="services/ghana-location.ts" />
+            </Files>
+            <Purpose>Ghana-specific weather and location services</Purpose>
+            <Capabilities>
+              <Capability>Local weather patterns</Capability>
+              <Capability>Regional forecasting</Capability>
+              <Capability>Location-based services</Capability>
+            </Capabilities>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="AI_Services">
+          <Component name="Chatbot_Service" type="ai_interaction">
+            <File path="services/chatbot.ts" />
+            <Purpose>Handle AI chatbot interactions</Purpose>
+            <ExternalDependencies>
+              <Dependency name="Google_Gemini_AI" />
+            </ExternalDependencies>
+            <Capabilities>
+              <Capability>Natural language processing</Capability>
+              <Capability>Context management</Capability>
+              <Capability>Response generation</Capability>
+              <Capability>Agricultural knowledge base</Capability>
+            </Capabilities>
+          </Component>
+          
+          <Component name="AI_Crop_Recommendations_Service" type="ai_advisory">
+            <File path="services/ai-crop-recommendations.ts" />
+            <Purpose>Generate AI-powered crop recommendations</Purpose>
+            <Capabilities>
+              <Capability>Crop suitability analysis</Capability>
+              <Capability>Seasonal recommendations</Capability>
+              <Capability>Climate optimization</Capability>
+              <Capability>Yield predictions</Capability>
+            </Capabilities>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="IoT_Services">
+          <Component name="IoT_Sensors_Service" type="hardware_integration">
+            <File path="services/iot-sensors.ts" />
+            <Purpose>Manage IoT sensor data and devices</Purpose>
+            <Capabilities>
+              <Capability>Sensor data collection</Capability>
+              <Capability>Device management</Capability>
+              <Capability>Real-time monitoring</Capability>
+              <Capability>Alert generation</Capability>
+            </Capabilities>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Community_Services">
+          <Component name="Posts_Service" type="social_features">
+            <Files>
+              <File path="services/posts.ts" />
+              <File path="services/posts-new.ts" />
+            </Files>
+            <Purpose>Manage community posts and interactions</Purpose>
+            <Capabilities>
+              <Capability>Post creation</Capability>
+              <Capability>Content moderation</Capability>
+              <Capability>User interactions</Capability>
+              <Capability>Feed generation</Capability>
+            </Capabilities>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Utility_Services">
+          <Component name="API_Service" type="utility">
+            <File path="services/api.ts" />
+            <Purpose>General API utilities and helpers</Purpose>
+          </Component>
+          
+          <Component name="Local_Storage_Service" type="client_storage">
+            <File path="services/local-storage.ts" />
+            <Purpose>Client-side data persistence</Purpose>
+          </Component>
+          
+          <Component name="Database_Service" type="data_access">
+            <Files>
+              <File path="services/database.ts" />
+              <File path="services/database-new.ts" />
+              <File path="services/database-clean.ts" />
+              <File path="services/database-fixed.ts" />
+            </Files>
+            <Purpose>Database operations and connection management</Purpose>
+          </Component>
+          
+          <Component name="Supabase_Service" type="backend_integration">
+            <File path="services/supabase.ts" />
+            <Purpose>Supabase client configuration and utilities</Purpose>
+          </Component>
+        </ComponentGroup>
+      </Components>
+    </Layer>
+
+    <!-- Data Layer -->
+    <Layer name="Data" level="4" type="Persistence">
+      <Description>Data storage, management, and external data sources</Description>
+      
+      <Components>
+        <ComponentGroup name="Database">
+          <Component name="Supabase_PostgreSQL" type="primary_database">
+            <Configuration>
+              <Host>Supabase Cloud</Host>
+              <Type>PostgreSQL</Type>
+              <Features>Real-time, Auth, Row Level Security</Features>
+            </Configuration>
+            
+            <Schema>
+              <SchemaFile path="database/schema.sql" />
+              <SecurityPolicies path="database/rls_policies.sql" />
+            </Schema>
+            
+            <Migrations>
+              <Migration file="supabase/migrations/20250818025844_turquoise_gate.sql" />
+              <Migration file="supabase/migrations/20250818030000_weather_predictions.sql" />
+              <Migration file="supabase/migrations/20250820000000_smartagri_complete_schema.sql" />
+              <Migration file="supabase/migrations/20250820000001_smartagri_rls_policies.sql" />
+              <Migration file="supabase/migrations/20250820000002_smartagri_crop_types_seed.sql" />
+            </Migrations>
+            
+            <Tables>
+              <Table name="profiles">
+                <Purpose>User profile information</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="name" type="text" />
+                  <Column name="email" type="text" />
+                  <Column name="location" type="text" />
+                  <Column name="bio" type="text" />
+                  <Column name="farm_name" type="text" />
+                  <Column name="specialization" type="text" />
+                  <Column name="created_at" type="timestamp" />
+                  <Column name="updated_at" type="timestamp" />
+                </Columns>
+                <Security>RLS enabled, user can only access own profile</Security>
+              </Table>
+              
+              <Table name="farms">
+                <Purpose>Farm information and management</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="user_id" type="uuid" foreign_key="profiles.id" />
+                  <Column name="name" type="text" />
+                  <Column name="location" type="text" />
+                  <Column name="size" type="decimal" />
+                  <Column name="soil_type" type="text" />
+                  <Column name="created_at" type="timestamp" />
+                </Columns>
+                <Security>RLS enabled, user can only access own farms</Security>
+              </Table>
+              
+              <Table name="crops">
+                <Purpose>Individual crop tracking</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="farm_id" type="uuid" foreign_key="farms.id" />
+                  <Column name="crop_type_id" type="uuid" foreign_key="crop_types.id" />
+                  <Column name="planted_date" type="date" />
+                  <Column name="expected_harvest" type="date" />
+                  <Column name="status" type="text" />
+                  <Column name="area" type="decimal" />
+                </Columns>
+              </Table>
+              
+              <Table name="crop_types">
+                <Purpose>Available crop varieties and information</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="name" type="text" />
+                  <Column name="category" type="text" />
+                  <Column name="growing_season" type="text" />
+                  <Column name="climate_requirements" type="jsonb" />
+                  <Column name="soil_requirements" type="jsonb" />
+                </Columns>
+              </Table>
+              
+              <Table name="weather_data">
+                <Purpose>Weather information storage</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="location" type="text" />
+                  <Column name="date" type="date" />
+                  <Column name="temperature_min" type="decimal" />
+                  <Column name="temperature_max" type="decimal" />
+                  <Column name="humidity" type="decimal" />
+                  <Column name="precipitation" type="decimal" />
+                  <Column name="wind_speed" type="decimal" />
+                  <Column name="pressure" type="decimal" />
+                </Columns>
+              </Table>
+              
+              <Table name="weather_predictions">
+                <Purpose>AI-generated weather predictions</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="location" type="text" />
+                  <Column name="prediction_date" type="date" />
+                  <Column name="prediction_data" type="jsonb" />
+                  <Column name="confidence_score" type="decimal" />
+                  <Column name="created_at" type="timestamp" />
+                </Columns>
+              </Table>
+              
+              <Table name="community_posts">
+                <Purpose>Community forum posts</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="user_id" type="uuid" foreign_key="profiles.id" />
+                  <Column name="title" type="text" />
+                  <Column name="content" type="text" />
+                  <Column name="category" type="text" />
+                  <Column name="likes" type="integer" />
+                  <Column name="created_at" type="timestamp" />
+                </Columns>
+              </Table>
+              
+              <Table name="iot_devices">
+                <Purpose>IoT device management</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="farm_id" type="uuid" foreign_key="farms.id" />
+                  <Column name="device_type" type="text" />
+                  <Column name="device_id" type="text" />
+                  <Column name="location" type="text" />
+                  <Column name="status" type="text" />
+                  <Column name="last_ping" type="timestamp" />
+                </Columns>
+              </Table>
+              
+              <Table name="sensor_readings">
+                <Purpose>IoT sensor data readings</Purpose>
+                <Columns>
+                  <Column name="id" type="uuid" primary="true" />
+                  <Column name="device_id" type="uuid" foreign_key="iot_devices.id" />
+                  <Column name="sensor_type" type="text" />
+                  <Column name="value" type="decimal" />
+                  <Column name="unit" type="text" />
+                  <Column name="timestamp" type="timestamp" />
+                </Columns>
+              </Table>
+            </Tables>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="External_Data_Sources">
+          <Component name="OpenWeatherMap_API" type="external_api">
+            <Purpose>Weather data and forecasts</Purpose>
+            <Endpoints>
+              <Endpoint url="https://api.openweathermap.org/data/2.5/weather" purpose="Current weather" />
+              <Endpoint url="https://api.openweathermap.org/data/2.5/forecast" purpose="Weather forecast" />
+            </Endpoints>
+            <Authentication>API Key</Authentication>
+          </Component>
+          
+          <Component name="Google_Gemini_AI" type="ai_service">
+            <Purpose>AI chatbot and recommendations</Purpose>
+            <Capabilities>
+              <Capability>Natural language processing</Capability>
+              <Capability>Agricultural knowledge</Capability>
+              <Capability>Recommendation generation</Capability>
+            </Capabilities>
+            <Authentication>API Key</Authentication>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Type_Definitions">
+          <Component name="Type_System" type="type_definitions">
+            <Files>
+              <File path="types/index.ts" purpose="General type definitions" />
+              <File path="types/supabase.ts" purpose="Database type definitions" />
+            </Files>
+            <Purpose>Type safety and IntelliSense support</Purpose>
+          </Component>
+        </ComponentGroup>
+      </Components>
+    </Layer>
+
+    <!-- Infrastructure Layer -->
+    <Layer name="Infrastructure" level="5" type="Configuration_and_Deployment">
+      <Description>Configuration, utilities, and deployment infrastructure</Description>
+      
+      <Components>
+        <ComponentGroup name="Configuration">
+          <Component name="Next_Configuration" type="framework_config">
+            <Files>
+              <File path="next.config.js" />
+              <File path="next.config.mjs" />
+            </Files>
+            <Purpose>Next.js application configuration</Purpose>
+          </Component>
+          
+          <Component name="TypeScript_Configuration" type="language_config">
+            <Files>
+              <File path="tsconfig.json" />
+              <File path="next-env.d.ts" />
+            </Files>
+            <Purpose>TypeScript compiler configuration</Purpose>
+          </Component>
+          
+          <Component name="Styling_Configuration" type="styling_config">
+            <Files>
+              <File path="tailwind.config.ts" />
+              <File path="postcss.config.js" />
+              <File path="components.json" />
+            </Files>
+            <Purpose>Styling and component library configuration</Purpose>
+          </Component>
+          
+          <Component name="Package_Management" type="dependency_management">
+            <File path="package.json" />
+            <Purpose>Project dependencies and scripts</Purpose>
+            <Dependencies>
+              <Framework name="Next.js" version="14.x" />
+              <Language name="TypeScript" version="5.x" />
+              <Styling name="Tailwind CSS" version="3.x" />
+              <Database name="@supabase/supabase-js" version="2.x" />
+              <UI name="@radix-ui/react-*" version="1.x" />
+              <AI name="@google/generative-ai" version="latest" />
+            </Dependencies>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Utilities">
+          <Component name="General_Utilities" type="helper_functions">
+            <Files>
+              <File path="lib/utils.ts" />
+              <File path="lib/dummy-data.ts" />
+            </Files>
+            <Purpose>Common utility functions and development data</Purpose>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Development_Tools">
+          <Component name="Testing_Infrastructure" type="testing">
+            <Files>
+              <File path="test-supabase-profiles.js" purpose="Database testing" />
+              <File path="test-profile-update.js" purpose="API testing" />
+              <File path="test-prediction-data.js" purpose="Weather data testing" />
+              <File path="test-prediction-api.js" purpose="Prediction API testing" />
+              <File path="test-improved-chatbot.js" purpose="AI testing" />
+              <File path="test-gemini.js" purpose="Gemini AI testing" />
+              <File path="test-production.sh" purpose="Production testing" />
+            </Files>
+            <Purpose>Comprehensive testing coverage</Purpose>
+          </Component>
+          
+          <Component name="Build_Scripts" type="automation">
+            <File path="scripts/clean-dev.sh" purpose="Development cleanup" />
+            <Purpose>Development automation and maintenance</Purpose>
+          </Component>
+        </ComponentGroup>
+
+        <ComponentGroup name="Static_Assets">
+          <Component name="Public_Assets" type="static_files">
+            <File path="public/weather-api-demo.html" purpose="API demonstration" />
+            <Purpose>Static files and demonstrations</Purpose>
+          </Component>
+        </ComponentGroup>
+      </Components>
+    </Layer>
+  </SystemLayers>
+
+  <!-- Cross-Cutting Concerns -->
+  <CrossCuttingConcerns>
+    <Concern name="Security">
+      <Implementation>
+        <Feature name="Authentication" provider="Supabase Auth" />
+        <Feature name="Authorization" mechanism="Row Level Security" />
+        <Feature name="Data Protection" method="Environment Variables" />
+        <Feature name="API Security" method="JWT Tokens" />
+      </Implementation>
+    </Concern>
+    
+    <Concern name="Performance">
+      <Implementation>
+        <Feature name="Client-Side Rendering" framework="Next.js" />
+        <Feature name="Server-Side Rendering" framework="Next.js" />
+        <Feature name="Static Generation" framework="Next.js" />
+        <Feature name="Code Splitting" automatic="true" />
+        <Feature name="Image Optimization" built_in="true" />
+      </Implementation>
+    </Concern>
+    
+    <Concern name="Monitoring">
+      <Implementation>
+        <Feature name="Error Handling" global="true" />
+        <Feature name="Logging" service="Console/External" />
+        <Feature name="Performance Monitoring" built_in="true" />
+      </Implementation>
+    </Concern>
+    
+    <Concern name="Scalability">
+      <Implementation>
+        <Feature name="Serverless Functions" provider="Vercel/Netlify" />
+        <Feature name="Database Scaling" provider="Supabase" />
+        <Feature name="CDN" automatic="true" />
+        <Feature name="Caching" multiple_levels="true" />
+      </Implementation>
+    </Concern>
+  </CrossCuttingConcerns>
+
+  <!-- Integration Points -->
+  <IntegrationPoints>
+    <Integration name="Frontend_to_API">
+      <Protocol>HTTP/HTTPS REST</Protocol>
+      <Format>JSON</Format>
+      <Authentication>JWT Tokens</Authentication>
+    </Integration>
+    
+    <Integration name="API_to_Database">
+      <Protocol>PostgreSQL Protocol</Protocol>
+      <Library>Supabase Client</Library>
+      <Security>Row Level Security</Security>
+    </Integration>
+    
+    <Integration name="AI_Integration">
+      <Service>Google Gemini AI</Service>
+      <Protocol>HTTPS REST</Protocol>
+      <Authentication>API Key</Authentication>
+    </Integration>
+    
+    <Integration name="Weather_Integration">
+      <Service>OpenWeatherMap</Service>
+      <Protocol>HTTPS REST</Protocol>
+      <Authentication>API Key</Authentication>
+    </Integration>
+  </IntegrationPoints>
+
+  <!-- Deployment Architecture -->
+  <DeploymentArchitecture>
+    <Environment name="Development">
+      <Platform>Local Machine</Platform>
+      <Database>Local Supabase</Database>
+      <Features>Hot Reload, Debug Mode</Features>
+    </Environment>
+    
+    <Environment name="Production">
+      <Platform>Vercel/Netlify</Platform>
+      <Database>Supabase Cloud</Database>
+      <Features>CDN, Auto-scaling, HTTPS</Features>
+    </Environment>
+    
+    <CI_CD>
+      <Repository>GitHub</Repository>
+      <AutoDeploy>Git Push to Main</AutoDeploy>
+      <Testing>Automated on PR</Testing>
+    </CI_CD>
+  </DeploymentArchitecture>
+
+  <!-- Quality Attributes -->
+  <QualityAttributes>
+    <Attribute name="Reliability">
+      <Measure>99.9% uptime target</Measure>
+      <Implementation>Error boundaries, graceful degradation</Implementation>
+    </Attribute>
+    
+    <Attribute name="Performance">
+      <Measure>< 3s page load time</Measure>
+      <Implementation>Code splitting, lazy loading, caching</Implementation>
+    </Attribute>
+    
+    <Attribute name="Security">
+      <Measure>Industry standard authentication</Measure>
+      <Implementation>JWT tokens, RLS, input validation</Implementation>
+    </Attribute>
+    
+    <Attribute name="Usability">
+      <Measure>Mobile-first responsive design</Measure>
+      <Implementation>Tailwind CSS, progressive enhancement</Implementation>
+    </Attribute>
+    
+    <Attribute name="Maintainability">
+      <Measure>Modular architecture</Measure>
+      <Implementation>Component-based design, TypeScript, clear separation of concerns</Implementation>
+    </Attribute>
+    
+    <Attribute name="Scalability">
+      <Measure>Support 10k+ concurrent users</Measure>
+      <Implementation>Serverless architecture, database auto-scaling</Implementation>
+    </Attribute>
+  </QualityAttributes>
+
+  <!-- Future Considerations -->
+  <FutureConsiderations>
+    <Enhancement name="Mobile App">
+      <Technology>React Native / Flutter</Technology>
+      <Timeline>Phase 2</Timeline>
+    </Enhancement>
+    
+    <Enhancement name="Advanced Analytics">
+      <Technology>Machine Learning Models</Technology>
+      <Timeline>Phase 3</Timeline>
+    </Enhancement>
+    
+    <Enhancement name="Microservices Migration">
+      <Technology>Docker, Kubernetes</Technology>
+      <Timeline>Phase 4</Timeline>
+    </Enhancement>
+    
+    <Enhancement name="Real-time Features">
+      <Technology>WebSockets, Server-Sent Events</Technology>
+      <Timeline>Phase 2</Timeline>
+    </Enhancement>
+  </FutureConsiderations>
+
+</SmartAgriSystemArchitecture>
